@@ -3,10 +3,10 @@
 ## Edit and deploy
 
 - Private repository: https://github.com/bn-19/local-ai-lab
-- Working / Vercel production branch: `codex/analytics-workflow`.
+- Production branch: `main`. Create a separate feature branch for UI work.
 - Live site: https://local-lab-bn-19s-projects.vercel.app
 - Vercel project: `local-lab`, team `bn-19s-projects`.
-- GitHub is connected to the existing Vercel project. Pushes to this branch automatically deploy production; other branches get previews. Do not assume `main` updates the demo.
+- GitHub is connected to the existing Vercel project. Pushes and merges to `main` automatically deploy production; other branches get previews, subject to Vercel contributor permissions.
 - Vercel builds only `web/`: `npm ci`, `npm run build`, output `dist`, Node 22. No backend dependencies or private data enter the frontend bundle.
 - Frontend source: `web/index.html`, `web/src/app.js`, `web/src/api.js`, `web/src/dashboard.js`, `web/src/styles.css`. No framework/dependencies.
 - Checks: `npm --prefix web test` and `npm --prefix web run build`. Frontend-only local preview: `npm --prefix web run dev` (4174). Real companion: root `npm run dev`, UI at `/app/`.
