@@ -2,7 +2,7 @@ export const LOOPBACK = 'http://127.0.0.1:4173';
 export class LocalAPI {
   constructor({ origin = globalThis.location?.origin, fetcher = globalThis.fetch } = {}) {
     this.sameOrigin = origin === LOOPBACK;
-    this.fetcher = fetcher;
+    this.fetcher = fetcher.bind(globalThis);
     this.token = '';
     this.connected = false;
     this.controllers = new Set();

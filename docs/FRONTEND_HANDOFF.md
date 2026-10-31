@@ -34,3 +34,7 @@ Backend also verified UCI Retail541909 rows/47.8MB, revenue9,747,747.934, saved-
 One isolated Chrome session is explicitly approved for the final deployed-origin Bike workflow, responsive checks, evaluation display and disconnect. Cleanup must close only its temporary browser/profile and verify no task-owned process remains. Browser results will be appended after the run.
 
 Git deployment requires GitHub to recognize the commit author and Vercel to authorize that contributor. The initial machine-default email was unrecognized; this checkout now uses the authenticated owner's GitHub noreply address. Friends should use their own verified GitHub identity and their authorized Vercel account, never borrow another author's identity. No collaborators were invited and no paid plan was enabled.
+
+First approved browser session ended before any loopback request. Native Window.fetch was invoked with the adapter as its receiver; the adapter now binds it to globalThis, with a targeted regression test. Browser/profile cleanup verified zero owned processes. Full deployed CSV/dashboard browser verification remains pending a separately approved replacement session.
+
+Vercel team is on Hobby. Private-repository commits from another contributor require Pro and authorized team membership for Git auto-deployment. The owner-authored Git push was verified READY; this does not mean arbitrary contributor commits are permitted. No subscription upgrade or collaborator invite was made.

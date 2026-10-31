@@ -21,3 +21,8 @@ test('upload keeps raw CSV on fixed local endpoint and encodes filename',async()
 test('sample filter recalculates all metrics and both charts',()=>{
  const all=sampleDashboard(),garden=sampleDashboard('Garden');assert.equal(all.kpis[0].value,72400);assert.equal(garden.kpis[0].value,19800);assert.equal(garden.source.filteredRows,6);assert.equal(garden.charts[0].points.length,6);assert.deepEqual(garden.charts[1].points,[{label:'Garden',value:19800}]);
 });
+
+test('fetch uses the browser global receiver required by native Window.fetch',async()=>{
+ const api=new LocalAPI({origin:'https://example.vercel.app',fetcher:async function(){assert.equal(this,globalThis);return response({machine:{},runtimes:{}});}});
+ await api.pair('test-token');assert.equal(api.connected,true);api.disconnect();
+});
