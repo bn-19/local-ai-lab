@@ -12,6 +12,8 @@ Local Lab helps people select, install, evaluate and improve open-source local m
 2. Paste the prompt from [START_HERE.md](START_HERE.md).
 3. Read [the build plan](docs/BUILD_PLAN.md) and [architecture](docs/ARCHITECTURE.md).
 
+The first live implementation session is analytics-focused: [analytics session prompt](docs/ANALYTICS_SESSION_PROMPT.md). It includes authorized bounded development subagents and the complete task → model install → evaluation/tuning → CSV dashboard journey. Candy remains the planned second demo.
+
 ## Run the design preview
 
 Node 22 or later; no package installation is needed.
