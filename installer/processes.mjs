@@ -6,17 +6,18 @@ import net from 'node:net';
 import {spawn} from 'node:child_process';
 export async function assertPortsFree(ports){for(const port of ports)await new Promise((resolve,reject)=>{const s=net.createServer();s.once('error',()=>reject(Error(`Port ${port} is already in use. Stop that application yourself; Local Lab will not interrupt it.`)));s.listen({host:'127.0.0.1',port,exclusive:true},()=>s.close(resolve));});}
 export function ownedProcess(command,args,options={}){const child=spawn(command,args,{...options,detached:true});const record={child,pid:child.pid,closed:false};record.done=new Promise(resolve=>{child.once('error',e=>{record.error=e;});child.once('close',()=>{record.closed=true;resolve();});});return record;}
-export async function stopOwned(records){
+export async function stopOwned(records,{kill=(pid,signal)=>process.kill(pid,signal),graceMs=3000,killMs=1000}={}){
  const active=()=>records.filter(r=>r.pid&&!r.retired);
- const signal=s=>{for(const r of active())try{process.kill(-r.pid,s);}catch(e){if(e.code!=='ESRCH')throw e;}};
- const remaining=()=>active().filter(r=>{try{process.kill(-r.pid,0);return true;}catch(e){if(e.code==='ESRCH')return false;if(e.code==='EPERM')return true;throw e;}}).map(r=>r.pid);
+ const note=(r,e,operation)=>{r.cleanupErrors??=[];if(!r.cleanupErrors.some(x=>x.code===e.code&&x.operation===operation))r.cleanupErrors.push({code:e.code??'UNKNOWN',operation});};
+ const signal=s=>{for(const r of active())try{kill(-r.pid,s);}catch(e){if(e.code!=='ESRCH')note(r,e,s);}};
+ const remaining=()=>active().filter(r=>{try{kill(-r.pid,0);return true;}catch(e){if(e.code==='ESRCH')return false;note(r,e,'probe');return true;}}).map(r=>r.pid);
  const waitGone=async ms=>{const deadline=performance.now()+ms;while(remaining().length&&performance.now()<deadline)await new Promise(r=>setTimeout(r,25));return remaining();};
  signal('SIGTERM');
  // Parent close is not evidence that its orphaned descendants have exited.
  // Give the group time to disappear before escalation (Darwin can return
  // transient EPERM for a group whose last member is being reaped).
- let survivors=await waitGone(3000);
- if(survivors.length){signal('SIGKILL');survivors=await waitGone(1000);}
+ let survivors=await waitGone(graceMs);
+ if(survivors.length){signal('SIGKILL');survivors=await waitGone(killMs);}
  if(!survivors.length)await Promise.all(records.map(r=>r.done));
  return survivors;
 }

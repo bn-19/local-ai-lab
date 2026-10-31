@@ -34,3 +34,14 @@ test('retirement cleans orphaned owned descendants before forgetting their group
  const parent=ownedProcess(process.execPath,['-e',code,pidFile],{stdio:'ignore'});
  try{await parent.done;const pid=Number(await readFile(pidFile,'utf8'));assert.doesNotThrow(()=>process.kill(pid,0));await retireOwned(parent);assert.equal(parent.retired,true);assert.equal(parent.pid,undefined);assert.throws(()=>process.kill(pid,0),{code:'ESRCH'});}finally{await stopOwned([parent]);}
 });
+
+test('one injected EPERM cannot prevent cleanup of other owned groups',async()=>{
+ const blocked=ownedProcess(process.execPath,['-e','setTimeout(()=>{},5000)'],{stdio:'ignore'}),other=ownedProcess(process.execPath,['-e','setTimeout(()=>{},5000)'],{stdio:'ignore'});
+ const kill=(pid,signal)=>{if(pid===-blocked.pid){const error=Error('injected');error.code='EPERM';throw error;}return process.kill(pid,signal);};
+ try{assert.deepEqual(await stopOwned([blocked,other],{kill,graceMs:50,killMs:50}),[blocked.pid]);await other.done;assert(blocked.cleanupErrors.some(e=>e.code==='EPERM'));assert.doesNotThrow(()=>process.kill(blocked.pid,0));}finally{await stopOwned([blocked,other]);}
+});
+test('failed cleanup responds truthfully and retains private diagnostic-only recovery metadata',async t=>{
+ const d=await fixture(t);await writeFile(path.join(d,'scripts/runtime.mjs'),"setTimeout(()=>{},700)");const module=path.join(d,'installer/processes.mjs');let code=await readFile(module,'utf8');code=code.replace(' const active=()=>records.filter'," kill=()=>{const e=Error('injected');e.code='EPERM';throw e;};graceMs=10;killMs=10;\n const active=()=>records.filter");await writeFile(module,code);
+ const child=spawn(process.execPath,['installer/launcher.mjs','start','--no-open'],{cwd:d,stdio:['ignore','pipe','pipe']});child.stdout.resume();child.stderr.resume();const done=new Promise(r=>child.once('close',r));const state=path.join(d,'.local-lab/launcher/session.json');
+ try{await until(()=>stat(path.join(d,'.local-lab/launcher/server.log')));assert.throws(()=>execFileSync(process.execPath,['installer/launcher.mjs','stop'],{cwd:d,timeout:10000,stdio:'pipe'}),e=>String(e.stderr).includes('Cleanup did not succeed'));assert.equal(await done,1);const saved=JSON.parse(await readFile(state,'utf8'));assert.equal(saved.state,'cleanup-failed');assert.equal(saved.diagnosticOnly,true);assert.equal(saved.ownedProcessGroups.length,3);assert(saved.errors.every(r=>r.errors.some(e=>e.code==='EPERM')));assert.equal((await stat(state)).mode&0o777,0o600);await sleep(850);for(const pid of saved.ownedProcessGroups)assert.throws(()=>process.kill(-pid,0),{code:'ESRCH'});}finally{if(child.exitCode===null)child.kill('SIGTERM');await done;}
+});
