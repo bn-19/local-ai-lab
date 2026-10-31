@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.4.0.0] - 2026-10-31
+
+### Added
+- Upload bounded JPEG/PNG photos locally and reopen saved photo results with task Activity.
+- Inspect experimental local detector boxes, accepted counts and uncertain regions; retain model identity and data provenance.
+- Add a separate pinned Qwen3-VL whole-photo estimation path with strict output validation and explicit failure states; estimates are not detector-confirmed counts.
+- Keep photo inference, installation and training in the existing serialized Device queue.
+
+### Fixed
+- Permit local photo previews under the hosted image policy and render box geometry without weakening script/style security.
+- Retain the Device reservation until VLM shutdown is confirmed after failure or cancellation.
+- Fence delayed dashboard-filter and saved-photo responses against task changes and disconnect.
+
 ## [0.3.1.0] - 2026-10-31
 
 ### Fixed
