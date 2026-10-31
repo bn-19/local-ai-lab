@@ -31,10 +31,24 @@ Backend independently verified UCI Bike Sharing day.csv (CC BY4): sum cnt, date 
 
 Backend also verified UCI Retail541909 rows/47.8MB, revenue9,747,747.934, saved-recipe follow-up, cancellation/alarm/recovery. These are backend measurements, not browser timing claims.
 
-One isolated Chrome session is explicitly approved for the final deployed-origin Bike workflow, responsive checks, evaluation display and disconnect. Cleanup must close only its temporary browser/profile and verify no task-owned process remains. Browser results will be appended after the run.
+Browser acceptance completed on the deployed origin with explicit session approval; see results below. All test-owned browser resources were closed.
 
 Git deployment requires GitHub to recognize the commit author and Vercel to authorize that contributor. The initial machine-default email was unrecognized; this checkout now uses the authenticated owner's GitHub noreply address. Friends should use their own verified GitHub identity and their authorized Vercel account, never borrow another author's identity. No collaborators were invited and no paid plan was enabled.
 
-First approved browser session ended before any loopback request. Native Window.fetch was invoked with the adapter as its receiver; the adapter now binds it to globalThis, with a targeted regression test. Browser/profile cleanup verified zero owned processes. Full deployed CSV/dashboard browser verification remains pending a separately approved replacement session.
+First approved browser session ended before any loopback request. Native Window.fetch was invoked with the adapter as its receiver; the adapter now binds it to globalThis, with a targeted regression test. Browser/profile cleanup verified zero owned processes. Subsequent verification is complete below.
 
 Vercel team is on Hobby. Private-repository commits from another contributor require Pro and authorized team membership for Git auto-deployment. The owner-authored Git push was verified READY; this does not mean arbitrary contributor commits are permitted. No subscription upgrade or collaborator invite was made.
+
+## Completed hosted-browser acceptance (2026-10-31)
+
+Tested deployed frontend `aae80fb69da3988f2bb7c49e13db4e50f1b5fe36` on the actual HTTPS production origin in isolated Chrome156. No CORS/LNA disabling; only origin-scoped loopback permission. A prior replacement run confirmed pairing/import but stopped on a Playwright inspector-cache read; the final separately approved run verified rendered UI instead.
+
+- No loopback requests before pairing; denied permission leaves disconnected; bad token rejected; valid token connects.
+- Browser-selected UCI Bike CSV imported731rows in26ms. Actual Qwen3:4b model plan3142ms, including1539ms load; model digest359d7dd4bcdab3d86b87d73ac27966f4dbb9f5efdfcc75d34a8764a09474fae7.
+- UI displayed two real charts and3,292,679 rides/731rows. Working-day filter displayed2,292,410 rides/500rows, matching independent calculations.
+- Task08d7f493-73b6-4ad8-b0af-d6e1be0ac47b; job801efa44-0d51-4471-92c7-f9b1c9841c98. Relay request and receipt242367939327848448; completion and receipt242367992004112384.
+- Saved task visible; actual baseline/candidate held-out2/2 comparison displayed with baseline retained; Relay details visible. Saved recipe evaluation remained complete after new task.
+- Responsive390px layout: no horizontal overflow. No uncaught page errors. Disconnect cleared token and rendered private results.
+- Browser closed, temporary profile removed, process check found zero test-owned processes. Backend remains running with idle Device queue for the demo.
+
+Local evidence: `/tmp/local-lab-browser-final/evidence.json`, `dashboard-desktop.png`, `dashboard-mobile.png`. These contain public-fixture results only and are intentionally not bundled or committed.
