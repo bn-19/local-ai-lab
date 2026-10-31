@@ -6,7 +6,52 @@ Describe what you need, review a model that fits your Mac, and turn a CSV into a
 
 Built for **Haunted Hacks 2026**.
 
-[Open the app](https://local-lab-bn-19s-projects.vercel.app) · [Quick start](#quick-start) · [Architecture](#architecture) · [Documentation](#documentation)
+[Download for Mac](https://github.com/bn-19/local-ai-lab/releases/download/v0.5.0.0/Local-Lab-Mac-Installer.zip) · [Try the CSV demo](#try-the-csv-demo-on-your-mac) · [Open the hosted app](https://local-lab-bn-19s-projects.vercel.app) · [Architecture](#architecture)
+
+## Try the CSV demo on your Mac
+
+**Judges: start here.** You need an **Apple Silicon Mac (M1 or later), macOS 14+, and an internet connection**. The demonstrated machine is an M5 MacBook Pro with 32 GB memory; the app checks model compatibility and shows download and memory requirements before you run it. Git, Homebrew and administrator privileges are not required.
+
+**[Download the Mac installer ZIP · v0.5.0.0](https://github.com/bn-19/local-ai-lab/releases/download/v0.5.0.0/Local-Lab-Mac-Installer.zip)** · [Release notes and checksums](https://github.com/bn-19/local-ai-lab/releases/tag/v0.5.0.0)
+
+### 1. Install, start and connect
+
+1. Extract the **entire ZIP**, then double-click **Install.command**. It installs Local Lab into `~/Applications/Local Lab`. This is an **unsigned command-script helper**, not a signed or notarized Mac app. If macOS blocks it, follow the [Mac installation guide](installer/INSTALL.md); do not disable system security settings.
+2. In the installed folder, double-click **Start.command**. On first start, it asks permission to create your own Agent Relay workspace for coordination. Keep this Terminal window open while using the app.
+3. Open **[the local workspace](http://127.0.0.1:4173/app/)** once startup finishes. Click **Connect your Mac**, then paste your pairing token and click **Connect to my Mac**. To display the token, open a second Terminal window and run:
+
+   ```sh
+   cat "$HOME/Applications/Local Lab/.local-lab/pairing-token"
+   ```
+
+   Keep this token private. If you chose a different installation folder, use that path instead.
+
+The installer includes the local web interface and companion. The [hosted interface](https://local-lab-bn-19s-projects.vercel.app) can also connect to your running companion; the hosted site alone does not run models. Model weights are a separate, explicitly approved download. First setup takes longer than subsequent runs and depends on your connection and selected model.
+
+### 2. Upload the real CSV and run an analysis
+
+1. **[Download the original candy-data.csv](https://raw.githubusercontent.com/fivethirtyeight/data/4b9d687691091f8e44addfb051a651aebc1a4862/candy-power-ranking/candy-data.csv)** from FiveThirtyEight. If it opens as text, save it as `candy-data.csv`, not an HTML page. This pinned file has **85 entries** and is licensed CC BY 4.0.
+2. In **Workspace**, choose that file under **Your data**. In **What do you need?**, enter:
+
+   > Compare candy popularity using matchup win rates. Rank the candies and let me filter chocolate versus non-chocolate entries.
+
+3. Confirm these fields after the CSV imports:
+
+   | Field | Select |
+   | --- | --- |
+   | Measure | **Average of a column** |
+   | Value | `winpercent` |
+   | Compare groups by | `competitorname` |
+   | Options → Filter dashboard by | `chocolate` |
+   | Options → Date column | **No date column** |
+
+4. Click **Review setup**. Review the recommended model and its requirements. If it is missing, click **Download** and wait until it is **Ready**, then click **Run task**. For reference, the reviewed Qwen3 4B download is about 2.5 GB; your actual recommendation is shown in the app.
+5. Inspect the generated charts, statistics and **Activity** panel. With all groups included, expect **85 entries** and an **average matchup win rate of 50.32%**. Set the `chocolate` filter to `1`: expect **37 entries** and **60.92%**. Set it to `0`: expect **48 entries** and **42.14%**. These are historical preference scores, not sales figures.
+6. Open **Saved tasks** and reopen the result to check persistence. You can also toggle **Halloween mode**. When finished, press **Control-C** in the launcher Terminal or open the installed **Stop.command**; saved work and models remain on your Mac.
+
+This walkthrough runs a real local model and calculates results from the uploaded CSV. **Open sample** is a separate fictional preview and does not run a model. Fine-tuning is optional, requires the separate [MLX setup](docs/WEIGHT_FINETUNING.md), and is not needed for this dashboard.
+
+**Troubleshooting:** Keep the launcher Terminal open. If connecting fails, confirm startup completed, use the local workspace URL above, and check the token from your own installation. If a required port is occupied, the launcher reports it instead of stopping another app. [Full installation and recovery guide →](installer/INSTALL.md)
 
 ![Local Lab analyzing the candy dataset in the production Halloween interface](docs/assets/analytics-dashboard.png)
 
@@ -80,6 +125,8 @@ flowchart TB
 Raw inputs, outputs, adapters and credentials stay in ignored local storage. Relay receives coordination metadata rather than CSV rows or raw answers. The optional shared catalog falls back to reviewed built-in metadata when unavailable. A project directory or virtual environment is not an operating-system sandbox.
 
 ## Quick start
+
+**For developers installing from source.** Judges can use the [Mac installer walkthrough above](#try-the-csv-demo-on-your-mac) instead of these commands.
 
 The supported runtime is **Apple Silicon macOS** with **Node.js 22+** and enough memory and disk for the selected model. The demonstrated machine is an M5 MacBook Pro with 32 GB unified memory. Model downloads and initial runtime setup require a network connection.
 
@@ -160,7 +207,3 @@ The working frontend is in `web/`; the local API is `server.mjs`. Actor, model, 
 ### Credits
 
 Built with Terse, Agent Relay, Supabase, Ollama, MLX, DuckDB and Vercel. The candy dataset is [FiveThirtyEight's candy-power-ranking](https://github.com/fivethirtyeight/data/tree/master/candy-power-ranking), used under **CC BY 4.0**. Screenshots show the working production interface, not generated mockups.
-
-## Mac installer helpers
-
-The [Mac installation guide](installer/INSTALL.md) documents the source-bundled Apple Silicon installer. [Download the Mac installer ZIP](https://github.com/bn-19/local-ai-lab/releases/download/v0.5.0.0/Local-Lab-Mac-Installer.zip). This is an unsigned command-script helper, not a signed or notarized macOS app. Models are downloaded separately through explicit app setup; no weights or account credentials are bundled.
