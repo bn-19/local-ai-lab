@@ -8,8 +8,8 @@
 - Vercel project: `local-lab`, team `bn-19s-projects`.
 - GitHub is connected to the existing Vercel project. Pushes and merges to `main` automatically deploy production; other branches get previews, subject to Vercel contributor permissions.
 - Vercel builds only `web/`: `npm ci`, `npm run build`, output `dist`, Node 22. No backend dependencies or private data enter the frontend bundle.
-- Frontend source: `web/index.html`, `web/src/app.js`, `web/src/api.js`, `web/src/dashboard.js`, `web/src/styles.css`. No framework/dependencies.
-- Checks: `npm --prefix web test` and `npm --prefix web run build`. Frontend-only local preview: `npm --prefix web run dev` (4174). Real companion: root `npm run dev`, UI at `/app/`.
+- Frontend source: `web/index.html`, `web/src/app.js`, `web/src/api.js`, `web/src/dashboard.js`, `web/src/styles.css`, `web/src/activity.js`, `web/src/activity-state.js`. No browser runtime dependencies; LinkeDOM is a development dependency for browser-free DOM tests.
+- Checks: install test dependencies with `npm --prefix web ci --ignore-scripts`, then `npm --prefix web test` and `npm --prefix web run build`. Frontend-only local preview: `npm --prefix web run dev` (4174). Real companion: root `npm run dev`, UI at `/app/`.
 
 ## Design
 
@@ -55,9 +55,9 @@ Local evidence: `/tmp/local-lab-browser-final/evidence.json`, `dashboard-desktop
 
 ## Design and live activity update
 
-Consistent outline navigation icons, a 4px spacing rhythm, a dominant trend chart and quieter comparison chart refine the existing paper/pine design. Copy stays minimal; receipts are available under Handoff details.
+Consistent outline navigation icons, a 4px spacing rhythm, a dominant trend chart and quieter comparison chart refine the existing paper/pine design. Copy stays minimal; receipts are available under Run details and recorded-step disclosures.
 
-`web/src/activity.js` renders persisted Planner/Evaluator handoffs and local job stages from `activity-state.js`. The API observer starts only after explicit pairing, refreshes every second during queued/running work and every four seconds while idle, and stops on disconnect or when no subscribers remain. Late responses after disconnect are discarded. Errors show an explicit retry state; no simulated agent progress is introduced. The activity module is independent of ongoing changes in `app.js`.
+`web/src/activity.js` renders task-scoped persisted job evidence from `activity-state.js`; Planner/Evaluator/Trainer labels appear only when optional role events are supplied by the companion. See [Activity compatibility and verification](ACTIVITY.md). The API observer starts only after explicit pairing, refreshes every second during queued/running work and every four seconds while idle, and stops on disconnect or when no subscribers remain. Late responses after disconnect are discarded. Errors show an explicit retry state; no simulated agent progress is introduced. `app.js` publishes selection changes to the existing observer so Activity follows the opened or newly created task; the separate Monitor remains device-wide.
 
 Design guidance: Impeccable and [Unslop](https://github.com/heydamir/unslop) by Damir Sokolovsky (heydamir), [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/), adapted to the existing product palette and layout. This revision was checked with Node tests and the static build; the browser acceptance above applies to its stated earlier revision.
 

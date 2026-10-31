@@ -23,7 +23,7 @@ npm run dev
 
 Open [the hosted frontend](https://local-lab-bn-19s-projects.vercel.app) or [local fallback](http://127.0.0.1:4173/app/). Read `.local-lab/pairing-token` locally and enter it in Connect your Mac. Never put this token in a URL, source file or chat. Browser loopback permission may be required; unsupported browsers receive a connection error.
 
-[Detailed setup and recovery](docs/IMPLEMENTATION.md) · [API contract](docs/LOCAL_API_CONTRACT.md) · [Frontend handoff](docs/FRONTEND_HANDOFF.md) · [Dataset sources](docs/DATASETS.md)
+[Detailed setup and recovery](docs/IMPLEMENTATION.md) · [API contract](docs/LOCAL_API_CONTRACT.md) · [Frontend handoff](docs/FRONTEND_HANDOFF.md) · [Dataset sources](docs/DATASETS.md) · [Task activity and evidence](docs/ACTIVITY.md)
 
 ## What works
 
@@ -33,6 +33,7 @@ Open [the hosted frontend](https://local-lab-bn-19s-projects.vercel.app) or [loc
 - Real Planner/Evaluator Relay messages trigger local work; Terse retains tasks, queue attempts, model/config identity and results.
 - Four-case development/held-out configuration comparison; baseline retained unless held-out correctness improves.
 - Saved local recipes and follow-ups, queued cancellation, alarm-triggered deferred work, stale-result fencing and between-job recovery.
+- Task-scoped Activity with expandable saved evidence; a separate Monitor retains device-wide queue and timing information.
 
 The measured public Bike Sharing and 541,909-row Online Retail checks are documented in [implementation evidence](docs/IMPLEMENTATION.md). Local result files remain ignored. No benchmark from another Mac is used as evidence.
 
@@ -49,6 +50,9 @@ The old root `index.html`, `app.js` and `styles.css` are preserved design artifa
 ```sh
 npm run check
 npm test
+npm --prefix web ci --ignore-scripts
+npm --prefix web test
+npm --prefix web run build
 node scripts/acceptance.mjs
 node scripts/actor-checks.mjs
 node scripts/lifecycle-checks.mjs
