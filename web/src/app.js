@@ -312,16 +312,17 @@ async function renderSaved() {
   if(!api.connected)return;const state=await refreshSavedCount();panel.replaceChildren();
   const pct=v=>Number.isFinite(v)?(v*100).toFixed(1)+'%':'not scored';
   panel.append(el('h2',{},'Saved models'));
-  if(!state.saved?.length)panel.append(el('p',{class:'empty'},'No saved models yet. Open a task or tuning run and press Save model.'));
+  if(!state.saved?.length)panel.append(el('p',{class:'empty'},el('strong',{},'Nothing saved yet'),'Open a task or a tuning run in Workspace and press Save model. It will be listed here with a name you choose.'));
   for(const item of state.saved||[]){
     const tuning=item.kind==='tuning';
     const live=tuning?(state.tunings||[]).find(t=>t.id===item.refId):(state.tasks||[]).find(t=>t.id===item.refId);
-    const summary=tuning?`Vision model · ${live?.recipe||item.summary?.recipe} · best held-out ${pct(live?.best?.heldout_accuracy??item.summary?.heldout_accuracy)} · ${live?.status||item.summary?.status}`:`Analysis model · ${item.summary?.model||'local model'} · ${live?.status||item.summary?.status}`;
-    panel.append(el('div',{class:'task-row'},el('div',{},el('h3',{},item.name),el('p',{},summary),el('p',{},`${item.summary?.request||''} · saved ${new Date(item.savedAt).toLocaleString()}`)),el('button',{class:'secondary',onClick:()=>run(async()=>{if(tuning)openTuning(item.refId);else{await loadTask(item.refId);$('dashboard').scrollIntoView({block:'start'});}view('workspace');})},'Open in workspace')));
+    const status=live?.status||item.summary?.status||'';
+    const summary=tuning?`${live?.recipe||item.summary?.recipe}, best held-out ${pct(live?.best?.heldout_accuracy??item.summary?.heldout_accuracy)} over ${live?.rounds?.length??item.summary?.rounds??0} round${(live?.rounds?.length??item.summary?.rounds)===1?'':'s'}`:`${item.summary?.model||'local model'}${item.summary?.request?', “'+item.summary.request+'”':''}`;
+    panel.append(el('div',{class:'task-row'},el('div',{},el('div',{class:'row-head'},el('h3',{},item.name),el('span',{class:'chip-kind','data-kind':tuning?'vision':'analysis'},tuning?'Vision model':'Analysis model')),el('p',{},summary),el('p',{class:'status','data-state':status},el('span',{class:'dot','aria-hidden':'true'}),`${status||'unknown'}, saved ${new Date(item.savedAt).toLocaleString()}`)),el('button',{class:'secondary',onClick:()=>run(async()=>{if(tuning)openTuning(item.refId);else{await loadTask(item.refId);$('dashboard').scrollIntoView({block:'start'});}view('workspace');})},'Open in workspace')));
   }
   panel.append(el('h2',{},'Task history'));
-  if(!state.tasks?.length)panel.append(el('p',{class:'empty'},'No tasks yet'));
-  for(const task of state.tasks||[])panel.append(el('div',{class:'task-row'},el('div',{},el('h3',{},task.request||task.id),el('p',{},`${task.status} · ${task.id}${savedRefs.has(task.id)?' · saved as “'+savedRefs.get(task.id)+'”':''}`)),el('button',{class:'secondary',onClick:()=>run(async()=>{await loadTask(task.id);view('workspace');$('dashboard').scrollIntoView({block:'start'});})},'Open task')));
+  if(!state.tasks?.length)panel.append(el('p',{class:'empty'},el('strong',{},'No tasks yet'),'Every task you run in Workspace is kept here, saved or not.'));
+  for(const task of state.tasks||[])panel.append(el('div',{class:'task-row'},el('div',{},el('h3',{},task.request||task.id),el('p',{class:'status','data-state':task.status},el('span',{class:'dot','aria-hidden':'true'}),`${task.status}, ${task.id.slice(0,8)}${savedRefs.has(task.id)?', saved as “'+savedRefs.get(task.id)+'”':''}`)),el('button',{class:'secondary',onClick:()=>run(async()=>{await loadTask(task.id);view('workspace');$('dashboard').scrollIntoView({block:'start'});})},'Open task')));
 }
 async function renderActivity() { /* Live monitor is owned by the activity observer. */ }
 document.querySelectorAll('[data-view]').forEach(button=>button.addEventListener('click',()=>{view(button.dataset.view);run(async()=>{if(button.dataset.view==='saved')await renderSaved();if(button.dataset.view==='activity')await renderActivity();});}));

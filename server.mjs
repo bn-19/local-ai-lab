@@ -31,6 +31,7 @@ import {
   stopWorker,
 } from "./lib/jobs.mjs";
 import { startTuning, getTuning, cancelTuning, recipes } from "./lib/tuner.mjs";
+import { relayStatus } from "./lib/relay.mjs";
 const port = Number(process.env.PORT ?? 4173),
   localOrigin = `http://127.0.0.1:${port}`;
 await mkdir(root, { recursive: true });
@@ -154,6 +155,10 @@ const server = createServer(async (req, res) => {
           loops:Object.entries(s).filter(([k])=>k.startsWith("loop:")).map(([,v])=>v),
           tunings: Object.entries(s).filter(([k]) => k.startsWith("tuning:")).map(([, v]) => v),
           saved: Object.entries(s).filter(([k]) => k.startsWith("saved:")).map(([, v]) => v).sort((a, b) => b.savedAt - a.savedAt),
+          // Monitor inputs: Relay connection state, recorded loop hand-offs, and how many records of each kind the Project actor holds.
+          relay: { ready: relayStatus.ready, error: relayStatus.error ?? null, agents: relayStatus.agents ?? [] },
+          handoffs: Object.entries(s).filter(([k]) => k.startsWith("handoff:")).map(([, v]) => v),
+          projectKeys: Object.keys(s).reduce((acc, k) => { const p = k.includes(":") ? k.slice(0, k.indexOf(":")) : k; acc[p] = (acc[p] ?? 0) + 1; return acc; }, {}),
           recipe: s.recipe ?? null,
           device: d,
         });

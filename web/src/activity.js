@@ -1,5 +1,5 @@
 import { observeLocalActivity } from './api.js';
-import { activityView, monitorView } from './activity-state.js';
+import { activityView, monitorView, relayView, actorsView } from './activity-state.js';
 import { element as el } from './dashboard.js';
 const panel = document.getElementById('live-activity');
 let selectedTask = null, savedState = null, connected = false;
@@ -71,7 +71,40 @@ const preset=el('select',{id:'cloud-model'},el('option',{value:'gpt5mini'},'GPT-
 const historyList=el('div');
 const eventList=el('ol',{class:'agent-events','aria-label':'Recorded activity'});
 let eventSignature='';
-monitor.append(monitorStatus,stepList,eventList,el('div',{class:'monitor-metrics'},el('div',{},el('span',{},'Elapsed'),elapsedValue),el('div',{},el('span',{},'ETA'),etaValue),el('div',{},el('span',{},'Cloud API avoided · est.'),costValue)),coverage,el('details',{},el('summary',{},'Cost assumptions'),el('div',{class:'fields'},el('label',{for:'cloud-model'},'Compare with',preset),el('label',{for:'cloud-input-rate'},'Input · USD / 1M tokens',rateInput),el('label',{for:'cloud-output-rate'},'Output · USD / 1M tokens',rateOutput)),el('p',{},'Local token counts are a proxy for cloud usage. Updated after each measured call. Excludes electricity, hardware, caching, tools and training. This is an API-fee estimate, not net savings or an equivalent-quality claim.'),el('a',{href:'https://developers.openai.com/api/docs/models/gpt-5-mini',target:'_blank',rel:'noopener'},'GPT-5 mini rates · checked Oct 31, 2026')),el('details',{},el('summary',{},'Recent jobs'),historyList));
+// Agent Relay feed and durable-actor cards. Both are rebuilt only when their derived view changes.
+const relayStatusLine=el('p',{class:'status',role:'status','data-state':'idle'},el('span',{class:'dot','aria-hidden':'true'}),'Connect your Mac');
+const setStatus=(node,state,textValue)=>{node.dataset.state=state;node.lastChild.textContent=textValue;};
+const recordLabels={job:'jobs',task:'tasks',tuning:'tuning runs',saved:'saved models',dataset:'datasets',document:'documents',recommendation:'recommendations',evaluation:'evaluations',handoff:'hand-offs',loop:'agent loops',report:'reports',fineTune:'fine-tunes',recipe:'recipe',reportingRecipe:'reporting recipe',selectedAdapter:'selected adapter'};
+const recordLabel=(key,n)=>recordLabels[key]||(n===1?key:key+'s');
+const relayFeed=el('ol',{class:'tune-feed relay-feed','aria-label':'Agent Relay messages'});
+const relaySection=el('section',{class:'monitor-section'},el('h2',{},'Agent Relay'),el('p',{class:'muted'},'Every message that crossed Relay between the app-owned agents, oldest first. Only job ids, work kinds and aggregate scores travel; task text, files and results stay on this Mac.'),relayStatusLine,relayFeed);
+const deviceCard=el('div',{class:'actor-card'}),projectCard=el('div',{class:'actor-card'});
+const actorsSection=el('section',{class:'monitor-section'},el('h2',{},'Durable actors'),el('p',{class:'muted'},'Read from the Terse actors on each poll. The Device actor holds the single active reservation and the queue, so a restart resumes from here. The Project actor holds every saved record.'),el('div',{class:'actor-grid'},deviceCard,projectCard));
+let relaySignature='',actorsSignature='';
+const when=at=>Number.isFinite(at)?new Date(at).toLocaleTimeString():'';
+const keepOpen=(container,build)=>{const open=[...container.querySelectorAll('details')].map(d=>d.open);build();[...container.querySelectorAll('details')].forEach((d,i)=>{if(i<open.length)d.open=open[i];});};
+function renderRelay(state){
+  const view=relayView(state);const key=JSON.stringify(view);if(key===relaySignature)return;relaySignature=key;
+  setStatus(relayStatusLine,view.ready?'ready':'queued',view.ready?`Relay connected as ${view.agents.join(', ')||'no agents'}. ${view.counts.sent} sent, ${view.counts.received} received, ${view.counts.failed} failed.`:`Relay not connected. ${view.error?view.error.replace(/\.?$/,'. '):''}${view.messages.length} message${view.messages.length===1?'':'s'} recorded.`);
+  if(!view.messages.length){relayFeed.replaceChildren(el('li',{class:'empty'},el('strong',{},'No Relay messages yet'),'Start a task or a tuning run in Workspace. The first Planner request to the Evaluator shows up here with its message id.'));return;}
+  relayFeed.replaceChildren(...view.messages.slice(-40).map(m=>el('li',{class:'bubble','data-from':m.from,'data-error':['failed','not sent','no receipt'].includes(m.delivery)?'':null},
+    el('span',{class:'who'},el('span',{class:'chip','aria-hidden':'true'},m.from[0]),m.from,el('span',{class:'to'},`to ${m.to}`),el('span',{class:'via'},`${m.kind}${m.phase?', '+m.phase:''}${m.at!==null?', '+when(m.at):''}`)),
+    el('span',{class:'say'},m.crosses.length?m.crosses.join(', '):(m.error||'')),
+    el('small',{class:'receipt'},m.error&&m.crosses.length?`Not delivered. ${m.error}`:`${m.messageId?'Message '+m.messageId.slice(0,8):'No message id'}, ${m.delivery}${m.receiptId?', receipt '+m.receiptId.slice(0,8):''}`))));
+}
+function renderActors(state){
+  const view=actorsView(state);const key=JSON.stringify(view);if(key===actorsSignature)return;actorsSignature=key;
+  const dv=view.device,pv=view.project;
+  keepOpen(deviceCard,()=>deviceCard.replaceChildren(el('h3',{},dv.name),
+    el('p',{class:'actor-now','data-state':dv.active?'active':'idle'},el('span',{class:'dot','aria-hidden':'true'}),dv.active?`Running ${dv.active.kind}, ${dv.active.stage}, ${dv.active.runningFor??'?'} s so far, attempt ${dv.active.attempt}${dv.active.cancel?', cancel requested':''}`:'Idle, holding no reservation'),
+    el('p',{},dv.queue.length?`Queued: ${dv.queue.map(q=>`${q.kind} (waiting ${q.waitingFor??'?'} s${q.viaRelay?', arrived via Relay':''})`).join(', ')}`:'Queue is empty'),
+    el('details',{open:true},el('summary',{},`Finished attempts (${dv.historyTotal})`),el('ul',{class:'actor-list'},...dv.history.map(h=>el('li',{'data-state':h.status},el('span',{class:'dot','aria-hidden':'true'}),`${h.kind}, ${h.status}${h.durationS!==null?', '+h.durationS+' s':''}`,el('span',{class:'when'},h.at!==null?when(h.at):''))))),
+    dv.alarms!==null?el('p',{class:'muted'},`Alarms fired: ${dv.alarms}`):null));
+  keepOpen(projectCard,()=>projectCard.replaceChildren(el('h3',{},pv.name),
+    el('p',{},pv.counts.length?'Holding '+pv.counts.map(([k,n])=>`${n} ${recordLabel(k,n)}`).join(', '):'Holding no records yet'),
+    el('details',{open:true},el('summary',{},'Latest writes'),el('ul',{class:'actor-list'},...pv.recent.map(r=>el('li',{'data-state':r.status},el('span',{class:'dot','aria-hidden':'true'}),`${r.kind} ${r.id.slice(0,8)}, ${r.summary}${r.status?', '+r.status:''}`,el('span',{class:'when'},when(r.at))))))));
+}
+monitor.append(monitorStatus,stepList,eventList,relaySection,actorsSection,el('div',{class:'monitor-metrics'},el('div',{},el('span',{},'Elapsed'),elapsedValue),el('div',{},el('span',{},'ETA'),etaValue),el('div',{},el('span',{},'Cloud API avoided · est.'),costValue)),coverage,el('details',{},el('summary',{},'Cost assumptions'),el('div',{class:'fields'},el('label',{for:'cloud-model'},'Compare with',preset),el('label',{for:'cloud-input-rate'},'Input · USD / 1M tokens',rateInput),el('label',{for:'cloud-output-rate'},'Output · USD / 1M tokens',rateOutput)),el('p',{},'Local token counts are a proxy for cloud usage. Updated after each measured call. Excludes electricity, hardware, caching, tools and training. This is an API-fee estimate, not net savings or an equivalent-quality claim.'),el('a',{href:'https://developers.openai.com/api/docs/models/gpt-5-mini',target:'_blank',rel:'noopener'},'GPT-5 mini rates · checked Oct 31, 2026')),el('details',{},el('summary',{},'Recent jobs'),historyList));
 let monitorState=null;
 let stepSignature='',historySignature='';
 function duration(seconds){if(seconds===null)return 'Unavailable';return seconds<60?`${Math.floor(seconds)}s`:`${Math.floor(seconds/60)}m ${Math.floor(seconds%60)}s`;}
@@ -96,7 +129,7 @@ function updateMonitor(){
 preset.addEventListener('change',()=>{if(preset.value==='gpt5mini'){rateInput.value='0.25';rateOutput.value='2';}updateMonitor();});
 for(const input of [rateInput,rateOutput])input.addEventListener('input',()=>{preset.value='custom';updateMonitor();});
 observeLocalActivity(event=>{
-  if(event.type==='state'){monitorState=event.state;updateMonitor();}
+  if(event.type==='state'){monitorState=event.state;updateMonitor();renderRelay(event.state);renderActors(event.state);}
   if(event.type==='error'){stepSignature='';monitorStatus.textContent='Updates unavailable · retrying';stepList.querySelectorAll('[data-state="active"]').forEach(node=>node.dataset.state='stale');}
-  if(event.type==='disconnected'){monitorState=null;stepSignature=historySignature=eventSignature='';eventList.replaceChildren();stepList.replaceChildren();historyList.replaceChildren();monitorStatus.textContent='Connect your Mac';elapsedValue.textContent=etaValue.textContent=costValue.textContent='Unavailable';coverage.textContent='';}
+  if(event.type==='disconnected'){monitorState=null;stepSignature=historySignature=eventSignature=relaySignature=actorsSignature='';eventList.replaceChildren();stepList.replaceChildren();historyList.replaceChildren();relayFeed.replaceChildren();deviceCard.replaceChildren();projectCard.replaceChildren();setStatus(relayStatusLine,'idle','Connect your Mac');monitorStatus.textContent='Connect your Mac';elapsedValue.textContent=etaValue.textContent=costValue.textContent='Unavailable';coverage.textContent='';}
 });

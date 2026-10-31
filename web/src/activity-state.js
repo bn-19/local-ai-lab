@@ -73,6 +73,60 @@ export function activityView(state = {}, taskId = null) {
     device:`Device queue · ${activeCount} running · ${queuedCount} waiting`};
 }
 
+const short = id => typeof id === 'string' ? id.slice(0, 8) : '';
+const cap = value => typeof value === 'string' && value ? value[0].toUpperCase() + value.slice(1) : '';
+// Every message that crossed Agent Relay, rebuilt from saved job and loop records. Delivery is
+// only "received" when a recipient receipt id was recorded; nothing is assumed.
+export function relayView(state = {}) {
+  const messages = [];
+  for (const job of list(state.jobs)) {
+    if (!job.viaRelay) continue;
+    const base = {jobId: job.id, work: job.kind, taskId: job.taskId || null};
+    const crosses = [`job ${short(job.id)}`, `work ${job.kind}`];
+    if (list(job.payload?.scores).length) crosses.push('development scores: ' + job.payload.scores.map(s => `r${s.round} ${Math.round((s.development_accuracy ?? 0) * 1000) / 10}%`).join(', '));
+    messages.push({...base, id: `req:${job.id}`, at: stamp(job.createdAt), from: 'Planner', to: 'Evaluator', kind: 'request', messageId: job.requestMessageId || null, receiptId: job.receivedMessageId || null,
+      delivery: job.receivedMessageId ? 'received' : job.requestMessageId ? (job.status === 'failed' ? 'no receipt' : 'awaiting receipt') : 'not sent', error: !job.requestMessageId ? (job.error || null) : null, crosses});
+    if (job.completionMessageId || job.relayError) messages.push({...base, id: `done:${job.id}`, at: stamp(job.finishedAt), from: 'Evaluator', to: 'Planner', kind: 'completion', messageId: job.completionMessageId || null, receiptId: job.completionReceivedId || null,
+      delivery: job.completionReceivedId ? 'received' : job.completionMessageId ? 'awaiting receipt' : 'not sent', error: job.relayError || null, crosses: [`job ${short(job.id)}`, `status ${job.status}`]});
+  }
+  for (const loop of list(state.loops)) {
+    const events = list(loop.events);
+    for (const e of events) {
+      if (e.kind === 'handoff') {
+        const receipt = events.find(r => r.kind === 'receipt' && e.messageId && r.messageId === e.messageId);
+        messages.push({id: `loop:${loop.id}:${eventKey(e)}`, at: stamp(e.at), from: cap(e.role) || 'System', to: cap(e.to) || '—', kind: 'handoff', phase: e.phase, transport: e.transport || 'relay', messageId: e.messageId || null, receiptId: receipt ? e.messageId : null,
+          delivery: receipt ? 'received' : 'awaiting receipt', error: null, crosses: [`loop ${short(loop.id)}`, `phase ${e.phase}`, ...(Number.isFinite(e.score) ? [`score ${e.score}`] : [])], taskId: loop.taskId || null});
+      }
+      if (e.kind === 'transport_failure') messages.push({id: `loop:${loop.id}:${eventKey(e)}`, at: stamp(e.at), from: cap(e.role) || 'System', to: cap(e.to) || '—', kind: 'failure', delivery: 'failed', error: text(e.summary) || 'Relay unavailable', crosses: [], messageId: null, receiptId: null, taskId: loop.taskId || null});
+    }
+  }
+  messages.sort((a, b) => (a.at ?? 0) - (b.at ?? 0));
+  const relay = state.relay || {};
+  return {ready: Boolean(relay.ready), error: relay.error || null, agents: list(relay.agents), messages,
+    counts: {sent: messages.filter(m => m.messageId).length, received: messages.filter(m => m.delivery === 'received').length, failed: messages.filter(m => ['failed', 'not sent'].includes(m.delivery)).length}};
+}
+// What each Terse actor holds right now, read from the saved state only.
+export function actorsView(state = {}, now = Date.now()) {
+  const d = state.device || {};
+  const jobs = list(state.jobs);
+  const jobOf = id => jobs.find(j => j.id === id);
+  const seconds = from => Number.isFinite(from) ? Math.max(0, Math.round((now - from) / 1000)) : null;
+  const active = d.active ? {id: d.active.id, kind: d.active.kind, stage: jobOf(d.active.id)?.stage || d.active.stage || 'running', attempt: short(d.active.attempt), executor: short(d.active.executor), cancel: Boolean(d.active.cancel), runningFor: seconds(d.active.startedAt)} : null;
+  const queue = list(d.queue).map(j => ({id: j.id, kind: j.kind, waitingFor: seconds(j.createdAt), viaRelay: Boolean(j.viaRelay)}));
+  const history = list(d.history).slice(-8).reverse().map(j => ({id: j.id, kind: j.kind, status: j.status, at: stamp(j.finishedAt), durationS: Number.isFinite(j.startedAt) && Number.isFinite(j.finishedAt) ? Math.round((j.finishedAt - j.startedAt) / 10) / 100 : null}));
+  const counts = Object.entries(state.projectKeys || {}).sort((a, b) => b[1] - a[1]);
+  const recent = [];
+  const push = (kind, item, at, summary) => { if (stamp(at) !== null) recent.push({kind, id: item.id, status: item.status || '', at, summary: text(summary)}); };
+  for (const t of list(state.tasks)) push('task', t, t.completedAt || t.createdAt, t.request);
+  for (const j of jobs) push('job', j, j.finishedAt || j.startedAt || j.createdAt, `${j.kind} · ${j.stage || j.status}`);
+  for (const t of list(state.tunings)) push('tuning', t, t.completedAt || list(t.rounds).at(-1)?.finishedAt || t.createdAt, `${t.recipe} · ${list(t.rounds).length} rounds · best ${t.best ? Math.round(t.best.heldout_accuracy * 1000) / 10 + '%' : '—'}`);
+  for (const s of list(state.saved)) push('saved', s, s.savedAt, s.name);
+  for (const l of list(state.loops)) push('loop', l, l.completedAt || l.startedAt, l.stage || l.status);
+  recent.sort((a, b) => b.at - a.at);
+  return {device: {name: 'Device · local-mac', active, queue, history, alarms: Number.isFinite(d.alarms) ? d.alarms : null, historyTotal: list(d.history).length},
+    project: {name: 'Project · analytics', counts, recent: recent.slice(0, 10)}};
+}
+
 export function monitorView(state, now=Date.now(), rates={input:0.25,output:2}) {
   const jobs=[...(state.jobs||[])].sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
   const job=jobs.find(j=>j.status==='running')||jobs.find(j=>j.status==='queued')||jobs[0];

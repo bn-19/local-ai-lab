@@ -281,19 +281,57 @@ td:last-child, th:last-child { text-align: right; }
 .climb .arrow { font-size:24px; color:var(--muted); }
 .rounds, .compare { width:100%; border-collapse:collapse; font-size:13px; margin: 8px 0; }
 .rounds th, .rounds td, .compare th, .compare td { text-align:left; padding:7px 10px; border-bottom:1px solid var(--line); vertical-align: top; font-variant-numeric: tabular-nums; }
-.rounds th, .compare th { font-size:11px; letter-spacing:.3px; text-transform:uppercase; color:var(--muted); font-weight:550; }
+.rounds th, .compare th { font-size:12px; color:var(--muted); font-weight:550; }
 .compare td:first-child { color: var(--muted); }
 .promote { display:inline-block; font-size:11px; padding:2px 9px; border-radius:20px; background:var(--pine); color:var(--surface); margin-left:8px; font-weight:550; vertical-align: middle; }
+/* Agent conversations: one lane per side, a chip for the speaker, status by dot not by wash. */
 .tune-feed { list-style:none; padding:0; margin:8px 0 0; display:grid; gap:10px; }
-.bubble { max-width:680px; padding:10px 14px; border-radius:12px; background:var(--surface); border:1px solid var(--line); font-size:13px; overflow-wrap:anywhere; }
-.bubble strong { display:block; font-size:11px; letter-spacing:.3px; text-transform:uppercase; color:var(--muted); margin-bottom:4px; }
-.bubble .via { font-size:11px; letter-spacing:0; text-transform:none; margin-left:8px; }
-.bubble[data-role="Proposer"] { background:var(--soft); margin-left:48px; border-color: transparent; }
-.bubble[data-role="Judge"] { border-color:var(--pine); }
-.bubble[data-pending] { opacity:.7; font-style:italic; }
-.bubble[data-error] { background: var(--amber-bg); border-color: transparent; color: var(--error); }
-.bubble[data-error] strong { color: var(--error); }
-@media (max-width: 720px) { .bubble[data-role="Proposer"] { margin-left:16px; } .climb strong { font-size:28px; } }
+.bubble { max-width:72%; min-width:min(100%,320px); padding:10px 14px; border-radius:14px 14px 14px 4px; background:var(--surface); border:1px solid var(--line); font-size:13px; overflow-wrap:anywhere; justify-self:start; }
+.bubble .who { display:flex; align-items:center; gap:8px; font-size:12px; font-weight:600; margin-bottom:5px; flex-wrap:wrap; }
+.bubble .say { display:block; }
+.chip { width:20px; height:20px; border-radius:50%; display:inline-grid; place-items:center; font-size:11px; font-weight:600; color:var(--surface); background:var(--pine); flex:none; }
+.bubble .via, .bubble .to { font-weight:400; color:var(--muted); }
+.bubble[data-role="Judge"], .bubble[data-from="Evaluator"] { justify-self:end; border-radius:14px 14px 4px 14px; background:var(--soft); border-color:transparent; }
+.bubble[data-role="Judge"] .chip, .bubble[data-from="Trainer"] .chip { background:var(--ink); }
+.bubble[data-role="Proposer"] { margin-left:28px; background:var(--amber-bg); border-color:transparent; }
+.bubble[data-role="Proposer"] .chip, .bubble[data-from="Evaluator"] .chip { background:var(--amber); }
+.bubble[data-pending] { border-style:dashed; }
+.bubble[data-pending] .say::after { content:" …"; animation:pulse 1.4s infinite; }
+.bubble[data-error] { background:var(--amber-bg); border:1px solid var(--amber); }
+.bubble[data-error] .say { color:var(--error); }
+.status { display:flex; align-items:center; gap:8px; margin:4px 0 0; color:var(--muted); font-size:13px; }
+.dot { width:8px; height:8px; border-radius:50%; background:var(--muted); flex:none; display:inline-block; }
+[data-state="running"] > .dot, [data-state="active"] > .dot { background:var(--pine); animation:pulse 1.6s infinite; }
+[data-state="complete"] > .dot, [data-state="ready"] > .dot { background:var(--pine); }
+[data-state="failed"] > .dot, [data-state="interrupted"] > .dot { background:var(--error); }
+[data-state="cancelled"] > .dot, [data-state="queued"] > .dot { background:var(--amber); }
+@keyframes pulse { 50% { opacity:.35; } }
+@media (prefers-reduced-motion: reduce) { .dot, .bubble[data-pending] .say::after { animation:none; } }
+.chip-kind { font-size:11px; padding:3px 9px; border-radius:20px; background:var(--soft); color:var(--pine); white-space:nowrap; }
+.chip-kind[data-kind="vision"] { background:var(--amber-bg); color:var(--amber); }
+.row-head { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+.empty { padding:28px 0; margin-top:20px; }
+.empty strong { display:block; color:var(--ink); font-weight:550; margin-bottom:4px; }
+/* Monitor: Relay feed and durable actors */
+.monitor-section { margin: 28px 0; padding-top: 20px; border-top: 1px solid var(--line); }
+.monitor-section h2 { font-size: 16px; margin: 0 0 4px; }
+.monitor-section > .muted { font-size: 12px; margin: 0 0 12px; }
+.relay-feed .bubble[data-from="Trainer"] { margin-left: 24px; }
+.relay-feed .bubble[data-error] .say { color: var(--ink); }
+.relay-feed .bubble[data-error] .receipt { color: var(--error); }
+#saved-list h2 { font-size: 16px; margin: 28px 0 4px; }
+.relay-feed .receipt { display: block; margin-top: 6px; color: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; }
+.relay-feed .muted { font-size: 13px; }
+.actor-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+.actor-card { border: 1px solid var(--line); border-radius: 12px; padding: 16px; background: var(--surface); font-size: 13px; }
+.actor-card h3 { margin: 0 0 8px; font-size: 14px; }
+.actor-card p { margin: 6px 0; }
+.actor-now { font-weight: 550; display: flex; align-items: center; gap: 8px; }
+.actor-card details { font-size: 12px; margin-top: 8px; }
+.actor-list { list-style: none; padding: 0; margin: 6px 0 0; color: var(--ink); }
+.actor-list li { display: flex; align-items: center; gap: 8px; padding: 5px 0; border-bottom: 1px solid var(--line); overflow-wrap: anywhere; }
+.actor-list li .when { margin-left: auto; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+@media (max-width: 720px) { .bubble { max-width:100%; } .bubble[data-role="Proposer"] { margin-left:12px; } .climb strong { font-size:28px; } }
 .halloween-art { display:flex; align-items:center; gap:4px; pointer-events:none; visibility:hidden; opacity:0; transform:translateX(24px); transition:transform 360ms cubic-bezier(.22,1,.36,1), opacity 240ms ease-out, visibility 0s linear 360ms; }
 .halloween-art img { object-fit:contain; }
 .halloween-art img:first-child { transform:translateX(12px); transition:transform 420ms cubic-bezier(.22,1,.36,1); }

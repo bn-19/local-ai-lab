@@ -42,8 +42,9 @@ function render(){
   const openDetails=[...panel.querySelectorAll('details')].map(d=>d.open);
   panel.hidden=false;
   if(!t){panel.replaceChildren(el('h2',{},'Autonomous tuner'),el('p',{role:'status'},'Loading tuning run…'));return;}
-  const running=t.status==='running';
-  const head=el('div',{class:'runtime-row'},el('div',{},el('h2',{},`Autonomous tuner · ${t.recipe}`),el('p',{role:'status'},`${t.status} · ${t.stage||''} · round ${t.rounds?.length||0} of ${t.maxRounds}`)),
+  const running=t.status==='running',done=t.rounds?.length||0;
+  const statusText={running:`Running, round ${Math.min(done+1,t.maxRounds)} of ${t.maxRounds}: ${(t.stage||'working').replace(/^(Executor|Proposer) · /,'')}`,complete:`Complete after ${done} rounds`,failed:`Stopped after ${done} round${done===1?'':'s'}: ${t.stage||'failed'}`,cancelled:`Cancelled after ${done} round${done===1?'':'s'}`}[t.status]||t.status;
+  const head=el('div',{class:'runtime-row'},el('div',{},el('h2',{},`Autonomous tuner · ${t.recipe}`),el('p',{class:'status',role:'status','data-state':t.status},el('span',{class:'dot','aria-hidden':'true'}),statusText)),
     el('div',{class:'dashboard-tools'},running?el('button',{type:'button',class:'secondary',onClick:async()=>{try{await api.post(`/api/tuning/${encodeURIComponent(t.id)}/cancel`);}catch(e){panel.append(el('p',{role:'alert'},e.message));}}},'Cancel tuning'):null));
   panel.replaceChildren(head);
   if(t.request)panel.append(el('p',{},el('strong',{},'Task: '),t.request));
@@ -52,7 +53,9 @@ function render(){
   if(first)panel.append(el('div',{class:'climb'},el('div',{},el('small',{},'Baseline held-out'),el('strong',{},pct(first.heldout_accuracy))),el('span',{class:'arrow','aria-hidden':'true'},'→'),el('div',{},el('small',{},`Best held-out · round ${best?.round??'—'}`),el('strong',{},pct(best?.heldout_accuracy)))));
   if(t.rounds?.length)panel.append(el('table',{class:'rounds'},el('thead',{},el('tr',{},...['Round','Change','Development','Held-out','Time','Judge'].map(h=>el('th',{},h)))),
     el('tbody',{},...t.rounds.map(r=>el('tr',{},el('td',{},String(r.round)),el('td',{},r.change),el('td',{},pct(r.development_accuracy)),el('td',{},pct(r.heldout_accuracy)),el('td',{},secs(r.elapsedMs)),el('td',{},r.promoted?el('span',{class:'promote'},'Promoted'):'kept best'))))));
-  panel.append(el('h3',{},'Agents'),el('ol',{class:'tune-feed','aria-label':'Tuning hand-offs'},...feed(t).map(item=>el('li',{class:'bubble','data-role':item.role,'data-pending':item.pending?'':null,'data-error':item.error?'':null,role:item.error?'alert':null},el('strong',{},item.role,item.via?el('span',{class:'via'},item.via):null),item.text,item.promoted?el('span',{class:'promote'},'Promoted'):null))));
+  panel.append(el('h3',{},'Agents'),el('ol',{class:'tune-feed','aria-label':'Tuning hand-offs'},...feed(t).map(item=>el('li',{class:'bubble','data-role':item.role,'data-pending':item.pending?'':null,'data-error':item.error?'':null,role:item.error?'alert':null},
+    el('span',{class:'who'},el('span',{class:'chip','aria-hidden':'true'},item.role[0]),item.role,item.via?el('span',{class:'via'},item.via):null),
+    el('span',{class:'say'},item.text,item.promoted?el('span',{class:'promote'},'Promoted'):null)))));
   if(t.status==='failed')panel.append(el('p',{class:'muted'},'The rounds above are saved. Fix the cause and start a new run; a kill mid-run would resume, but a failed proposer step does not retry itself.'));
   if(t.status==='complete'&&best?.checkpoint)panel.append(el('p',{class:'muted'},`Best checkpoint saved locally at ${best.checkpoint}`));
   const table=benchmarkTable((recipes||[]).find(r=>r.id===t.recipe));
