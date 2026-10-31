@@ -1,8 +1,8 @@
-import { LocalAPI } from './api.js';
+import { LocalAPI, selectActivityTask } from './api.js';
 import { element as el, chartView, number, sampleDashboard, measureColumns } from './dashboard.js';
 const $ = id => document.getElementById(id);
 const api = new LocalAPI();
-let health=null, dataset=null, currentTask=null, activeJob=null, timer=null, sample=false, busy=false, pairing=false, epoch=0;
+let health=null, dataset=null, currentTask=null, activeJob=null, timer=null, sample=false, busy=false, pairing=false, epoch=0, taskLoad=0;
 const views=['workspace','saved','activity','connection'];
 function notify(message, error=false) { $('notice').textContent=message; $('notice').className=error?'error':''; $('notice').hidden=false; }
 function view(name) {
@@ -104,11 +104,11 @@ async function createTask(event) {
   event.preventDefault();if(busy)throw new Error('Wait for the current local operation to finish.');if(!api.connected){view('connection');return;}
   if(!dataset)throw new Error('Choose a file first.');
   if(!$('task').value.trim())throw new Error('Describe what you want to understand.');
-  if(dataset.kind==='document'){const result=await api.post('/api/tasks',{documentId:dataset.id,request:$('task').value.trim()});currentTask=result.taskId;sample=false;await watchJob(result.jobId);return;}
+  if(dataset.kind==='document'){const result=await api.post('/api/tasks',{documentId:dataset.id,request:$('task').value.trim()});currentTask=result.taskId;selectActivityTask(currentTask);sample=false;await watchJob(result.jobId);return;}
   const operation=$('operation').value;
   if(!$('group-column').value || (operation!=='count'&&!$('measure-column').value) || (operation==='product_sum'&&!$('measure-column2').value))throw new Error('Choose the measure and group columns before continuing.');
   const result=await api.post('/api/tasks',{request:$('task').value.trim(),datasetId:dataset.id,measure:{operation,column:$('measure-column').value||undefined,column2:operation==='product_sum'?$('measure-column2').value:undefined},dateColumn:$('date-column').value||null,groupColumn:$('group-column').value,filterColumn:$('filter-column').value||null,negativePolicy:$('negative-policy').value,reuseRecipe:false});
-  sample=false;currentTask=result.taskId;await watchJob(result.jobId);
+  sample=false;currentTask=result.taskId;selectActivityTask(currentTask);await watchJob(result.jobId);
 }
 async function watchJob(id,taskId=currentTask) {
   clearTimeout(timer);activeJob=id;busy=true;updateConnection();renderRuntime();
@@ -154,7 +154,9 @@ async function watchEvaluation(taskId,initialJobId) {
   await poll();
 }
 async function loadTask(id) {
-  const generation=epoch;const task=await api.get(`/api/tasks/${encodeURIComponent(id)}`);if(generation!==epoch)return;currentTask=task.id;sample=false;
+  const generation=epoch, load=++taskLoad;const task=await api.get(`/api/tasks/${encodeURIComponent(id)}`);if(generation!==epoch||load!==taskLoad)return;
+  $('dashboard').replaceChildren();$('dashboard').hidden=true;
+  currentTask=task.id;selectActivityTask(currentTask);sample=false;
   if(task.documentResult){renderDocument(task);return;}
   if(task.dashboard)renderDashboard(task.dashboard,task.evaluation,'',task.fineTune,task.liveReport);else notify(task.error||`Saved task is ${task.status}.`);
 }
@@ -163,7 +165,7 @@ function renderDocument(task) {
   const result=task.documentResult;
   panel.replaceChildren(el('h2',{id:'dashboard-title'},result.name),el('h3',{},task.request),...result.parts.map(part=>el('section',{class:'document-answer'},result.parts.length>1?el('h3',{},`Excerpt ${part.part} of ${result.parts.length}`):null,el('p',{},part.answer))));
   const form=el('form',{class:'followup'},el('input',{required:true,maxlength:2000,'aria-label':'Document question',placeholder:'Ask a follow-up'}),el('button',{type:'submit',class:'primary',disabled:busy},'Ask'));
-  form.addEventListener('submit',event=>{event.preventDefault();run(async()=>{const result=await api.post(`/api/tasks/${encodeURIComponent(task.id)}/followup`,{request:form.querySelector('input').value.trim()});currentTask=result.taskId;await watchJob(result.jobId);});});
+  form.addEventListener('submit',event=>{event.preventDefault();run(async()=>{const result=await api.post(`/api/tasks/${encodeURIComponent(task.id)}/followup`,{request:form.querySelector('input').value.trim()});currentTask=result.taskId;selectActivityTask(currentTask);await watchJob(result.jobId);});});
   panel.append(form,el('details',{class:'source-note'},el('summary',{},'Source'),el('p',{},`${result.characters} characters · ${result.model} · Read locally. Excerpts are answered independently; no whole-document aggregation.`)));
 }
 function renderDashboard(data,evaluation=null,filterValue='',fineTune=null,liveReport=null) {
@@ -187,7 +189,7 @@ function renderDashboard(data,evaluation=null,filterValue='',fineTune=null,liveR
   panel.append(el('details',{class:'source-note'},el('summary',{},'Source and measure'),el('p',{},`${number(source.filteredRows??source.rows)} of ${number(source.rows)} rows · ${measure} · Negative values: ${source.negativePolicy||'as supplied'}. ${sample?'Fictional data included with this preview. No model was run.':`Model: ${data.model?.id||'not reported'} · Configuration: ${data.configuration||'not reported'}.`}`)));
   if(sample)return;
   const followup=el('form',{class:'followup'},el('label',{class:'sr-only',for:'followup'},'Ask a follow-up'),el('input',{id:'followup',required:true,maxlength:2000,placeholder:'What else would you like to understand?'}),el('button',{class:'primary',type:'submit',disabled:busy},'Ask a follow-up →'));
-  followup.addEventListener('submit',event=>{event.preventDefault();run(async()=>{const result=await api.post(`/api/tasks/${encodeURIComponent(currentTask)}/followup`,{request:$('followup').value.trim()});currentTask=result.taskId;await watchJob(result.jobId);});});if(!candy)panel.append(followup);
+  followup.addEventListener('submit',event=>{event.preventDefault();run(async()=>{const result=await api.post(`/api/tasks/${encodeURIComponent(currentTask)}/followup`,{request:$('followup').value.trim()});currentTask=result.taskId;selectActivityTask(currentTask);await watchJob(result.jobId);});});if(!candy)panel.append(followup);
   const evalPanel=el('section',{class:'evaluation'},el('h3',{},'Reporting evaluation'),el('button',{class:'secondary',disabled:busy,onClick:()=>run(async()=>{const result=await api.post(`/api/tasks/${encodeURIComponent(currentTask)}/evaluate`);await watchEvaluation(currentTask,result.jobId);})},evaluation?'Run evaluation again':'Run reporting experiment'));
   evalPanel.append(el('dl',{},el('dt',{},'Data'),el('dd',{},'Synthetic benchmark'),el('dt',{},'Changes'),el('dd',{},'Prompt only')));
   evalPanel.append(el('details',{},el('summary',{},'Business rules used in this experiment'),el('p',{},'Revenue includes returns and excludes POST/ADJUST entries. Average order value divides net merchandise revenue by distinct order IDs, including return orders. Product rankings use net revenue. Profit needs cost data. Explicit question overrides take precedence. These are authored demo rules.')));
@@ -235,7 +237,7 @@ $('connection-link').addEventListener('click',()=>view('connection'));
 $('edit-setup').addEventListener('click',()=>{$('setup-workbench').hidden=false;$('workspace-heading').hidden=false;$('edit-setup').hidden=true;$('task').focus();});
 $('task-form').addEventListener('submit',event=>run(()=>createTask(event)));
 $('csv').addEventListener('change',()=>run(importCSV));
-$('sample-button').addEventListener('click',()=>{sample=true;renderDashboard(sampleDashboard());$('dashboard').scrollIntoView({block:'start',behavior:'smooth'});});
+$('sample-button').addEventListener('click',()=>{taskLoad++;sample=true;selectActivityTask(null);renderDashboard(sampleDashboard());$('dashboard').scrollIntoView({block:'start',behavior:'smooth'});});
 $('pair-form').addEventListener('submit',event=>{event.preventDefault();run(()=>pair($('pair-token').value));});
 $('retry-connection').addEventListener('click',()=>run(async()=>{health=await api.get('/api/health');updateConnection();renderRuntime();notify('Your local companion is reachable.');}));
 $('disconnect').addEventListener('click',disconnect);

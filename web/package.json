@@ -11,5 +11,8 @@
     "test": "node --test test/*.test.mjs",
     "build": "npm run check && node scripts/build.mjs",
     "dev": "node scripts/serve.mjs"
+  },
+  "devDependencies": {
+    "linkedom": "^0.18.14"
   }
 }

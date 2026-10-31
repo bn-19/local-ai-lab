@@ -23,6 +23,7 @@
       <section id="workspace-view">
         <div class="workspace-toolbar"><label class="theme-switch" for="halloween-mode"><img class="theme-pumpkin" src="./assets/halloween/pumpkin-icon-v2.png" width="28" height="28" alt="" aria-hidden="true"><span>Halloween mode</span><input id="halloween-mode" type="checkbox" role="switch"><span class="switch-track" aria-hidden="true"></span></label></div>
         <div class="page-heading" id="workspace-heading"><h1>New task</h1><div id="readiness" hidden></div><div class="halloween-art" aria-hidden="true"><img src="./assets/halloween/ghost.png" width="72" height="72" alt="" loading="lazy"><img src="./assets/halloween/pumpkin.png" width="96" height="107" alt="" loading="lazy"></div></div>
+        <div class="task-activity-layout"><div class="task-content">
         <section id="runtime-panel" class="runtime-panel" hidden></section>
         <button type="button" class="text-button" id="edit-setup" hidden>Edit setup</button>
         <div class="workbench" id="setup-workbench">
@@ -37,8 +38,8 @@
           </section>
         </div>
         <section id="job-panel" class="job-panel" aria-live="polite" hidden></section>
-        <section id="live-activity" class="live-activity" hidden aria-labelledby="live-activity-title"></section>
         <section id="dashboard" hidden aria-labelledby="dashboard-title"></section>
+        </div><aside id="live-activity" class="live-activity" hidden aria-labelledby="live-activity-title"></aside></div>
       </section>
       <section id="saved-view" hidden><h1>Saved tasks</h1><div id="saved-list"></div></section>
       <section id="activity-view" hidden><h1>Monitor</h1><div id="monitor-panel"></div></section>
