@@ -39,9 +39,10 @@ async function pair(token) {
   health=await api.pair(token);
   if(generation!==epoch)return;
   $('pair-token').value='';
-  updateConnection(); renderRuntime(); await refreshSavedCount();
+  updateConnection(); renderRuntime();
   $('connection-detail').textContent='Connected directly to your Mac. Your files are processed by the local companion.';
   $('notice').hidden=true;view('workspace');
+  await refreshSavedCount();
   } finally {pairing=false;submit.disabled=false;}
 }
 function disconnect() {

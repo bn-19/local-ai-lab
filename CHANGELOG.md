@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.3.1.0] - 2026-10-31
+
+### Fixed
+- Preserve a user's Saved tasks navigation when the pairing count refresh finishes after reconnect.
+
 ## [0.3.0.0] - 2026-10-31
 
 ### Added
