@@ -30,7 +30,7 @@ test('retired completed setup records cannot signal a later reused group ID',asy
 });
 test('retirement cleans orphaned owned descendants before forgetting their group',async t=>{
  const d=await temp(t),pidFile=path.join(d,'descendant-pid');
- const code="const {spawn}=require('node:child_process');const c=spawn(process.execPath,['-e','setInterval(()=>{},1000)'],{stdio:'ignore'});require('node:fs').writeFileSync(process.argv[1],String(c.pid));c.unref();";
+ const code="const {spawn}=require('node:child_process');const c=spawn(process.execPath,['-e','setTimeout(()=>{},5000)'],{stdio:'ignore'});require('node:fs').writeFileSync(process.argv[1],String(c.pid));c.unref();";
  const parent=ownedProcess(process.execPath,['-e',code,pidFile],{stdio:'ignore'});
  try{await parent.done;const pid=Number(await readFile(pidFile,'utf8'));assert.doesNotThrow(()=>process.kill(pid,0));await retireOwned(parent);assert.equal(parent.retired,true);assert.equal(parent.pid,undefined);assert.throws(()=>process.kill(pid,0),{code:'ESRCH'});}finally{await stopOwned([parent]);}
 });
