@@ -1,6 +1,6 @@
 # Optional shared model catalog
 
-The local companion can GET intentionally public model metadata from one existing Supabase project. The demo works without it. No project/account has been configured in this checkout: **Built-in catalog / not synced** is the actual current state. The SQL is prepared, not applied; live SELECT and client write denial remain unverified until project access is connected.
+The local companion can GET intentionally public model metadata from an existing Supabase project. The hackathon environment was connected and verified on October 31, 2026: catalog reads returned **Supabase / synced**, and SQL role checks and client write-denial checks passed. The runtime's catalog source was checked again when preparing the repository documentation. A fresh checkout still uses **Built-in catalog** until its own environment is configured; the demo does not require the shared service to remain available.
 
 ## Setup in an existing project
 
@@ -26,6 +26,8 @@ The compatible source contract is `{kind:'built-in'|'supabase',version,status,re
 
 ## Verification evidence
 
-`node --test test/shared-catalog.test.mjs` covers mocked successful reads and local ranking, missing/invalid config, correct public key headers, admin key rejection, failures/timeouts, malformed/oversized/unreviewed/mixed/duplicate rows, coalescing/cache/connection changes and seed digest agreement. These are **local mocked tests**, not cloud evidence. The SQL verification requires actual PostgreSQL/Supabase access and has not yet run. No Chrome session is needed.
+`node --test test/shared-catalog.test.mjs` covers mocked successful reads and local ranking, missing/invalid config, correct public key headers, admin key rejection, failures/timeouts, malformed/oversized/unreviewed/mixed/duplicate rows, coalescing/cache/connection changes and seed digest agreement. These are **local mocked tests**, not cloud evidence.
+
+In the configured hackathon environment, `001_catalog.sql` was applied and `002_verify.sql` passed its rolled-back role checks. `scripts/shared-catalog-check.mjs --verify-write-denial` observed the reviewed remote catalog and rejection of missing-key and publishable-client insert, update and delete attempts. A paired recommendation returned `catalogSource.kind: "supabase"`, `status: "synced"` and version `2026-10-31-v1`. These checks describe that configured deployment, not every fresh checkout or future policy change. Project credentials and local evidence files are not committed.
 
 Official references checked October 31, 2026: [Supabase API keys](https://supabase.com/docs/guides/getting-started/api-keys), [key migration and raw HTTP headers](https://supabase.com/docs/guides/getting-started/migrating-to-new-api-keys), [RLS and explicit read grants](https://supabase.com/docs/guides/database/postgres/row-level-security). Publishable keys go in `apikey` only; legacy anon JWTs additionally use Bearer authorization.
