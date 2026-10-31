@@ -33,3 +33,5 @@ The UI exposes real experimental overlays, accepted counts, unknowns and saved r
 ## Whole-photo VLM setup checkpoint
 
 The approved local `qwen3-vl:2b` download completed in 127.768 seconds and passed full manifest-digest and vision-capability verification. Its first Device inference job `cdd8f869-d9a8-4467-bba1-2b6c2676b195` failed immediately with an Ollama HTTP 400. No estimated candy result was produced by that run. A bounded diagnostic retry is in progress; do not advertise a successful VLM demo until a recorded actual result is available.
+
+The diagnostic run `12d12fe0-87fb-4d97-844c-d19cc10da919` identified the exact setup error: the original photo request required 9,077 tokens, exceeding the configured 4,096-token context. The bounded context was raised to 12,288 tokens for this reviewed local vision recipe; no model or weights changed. A subsequent actual inference result is required before claiming success.
