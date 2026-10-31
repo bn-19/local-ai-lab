@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f5f5ef">
+  <title>Local Lab · Your task, your computer</title>
+  <link rel="stylesheet" href="/styles.css">
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <div class="shell">
+    <aside class="sidebar" aria-label="Workspace navigation">
+      <a class="brand" href="/" aria-label="Local Lab home"><span class="brand-mark" aria-hidden="true">l<span>l</span></span>Local Lab</a>
+      <p class="workspace-label">YOUR WORKSPACE</p>
+      <nav aria-label="Main"><a class="nav-item current" href="#task" aria-current="page"><span aria-hidden="true">＋</span> New task</a><a class="nav-item" href="#recipe"><span aria-hidden="true">▤</span> Setup plan</a><a class="nav-item" href="#boundaries"><span aria-hidden="true">⌘</span> Your computer</a></nav>
+      <div class="sidebar-bottom"><span class="small-dot" aria-hidden="true"></span><div><strong>Designed for local use</strong><p>No cloud processing in this preview</p></div></div>
+    </aside>
+    <div class="workspace">
+      <header class="topbar"><span>Workspace <span class="breadcrumb">/ New task</span></span><span class="preview-badge">Design preview</span></header>
+      <main id="task">
+        <div class="intro"><p class="eyebrow">AI THAT FITS YOUR EVERYDAY</p><h1>What would you like help with?</h1><p class="lede">Start with the task. We’ll help find, check and tune a local model for it.</p></div>
+        <div class="work-grid">
+          <section class="task-workspace" aria-label="Create a local AI task">
+            <label for="request" class="field-label">Describe the result you want</label>
+            <textarea id="request" rows="3">Recognize the candy in a photo and tell me which types are there.</textarea>
+            <div class="section-heading"><h2>Start with a demo recipe</h2><span>2 supported directions</span></div>
+            <div class="recipe-choices" role="group" aria-label="Task recipe">
+              <button class="recipe-choice selected" type="button" data-profile="candy" aria-pressed="true"><span class="recipe-icon" aria-hidden="true">◈</span><span><strong>Recognize candy</strong><span class="choice-detail">Photos → candy types or visible-item counts</span></span><span class="choice-arrow" aria-hidden="true">↗</span></button>
+              <button class="recipe-choice" type="button" data-profile="analytics" aria-pressed="false"><span class="recipe-icon" aria-hidden="true">▥</span><span><strong>Understand a dataset</strong><span class="choice-detail">A spreadsheet → useful calculations and charts</span></span><span class="choice-arrow" aria-hidden="true">↗</span></button>
+            </div>
+            <div class="input-heading"><label for="files" class="field-label" id="input-label">Choose sample images</label><span>Optional for this preview</span></div>
+            <div class="upload-area"><span class="upload-icon" aria-hidden="true">↑</span><strong id="upload-title">A few examples make the task clearer</strong><p id="upload-detail">For training, we’ll also need the correct candy labels.</p><input id="files" type="file" accept="image/*" multiple aria-describedby="file-note file-status"><p id="file-note">Preview reads filenames only. Nothing is uploaded or analyzed.</p></div>
+            <p id="file-status" class="file-status" role="status" aria-live="polite">No files selected.</p>
+            <div class="actions"><button id="preview-plan" class="primary" type="button">Preview setup <span aria-hidden="true">→</span></button><p>Review the plan before any model downloads.</p></div>
+            <section id="plan-result" class="plan-result" hidden aria-labelledby="result-title" tabindex="-1"><p class="eyebrow">PROPOSED WORKFLOW</p><h2 id="result-title">Your setup outline</h2><p id="result-summary"></p><ol id="result-steps"></ol><p class="prototype-note">Design preview only. No agent, model, database or training job ran.</p></section>
+          </section>
+          <aside class="setup-panel" id="recipe" aria-labelledby="recipe-title">
+            <div class="panel-heading"><span class="small-dot" aria-hidden="true"></span><span>A SETUP YOU CAN UNDERSTAND</span></div>
+            <h2 id="recipe-title">A small model.<br>A useful result.</h2><p id="recipe-description">Start with a pretrained vision model. Teach it the candy types you care about using labeled examples.</p>
+            <ol class="setup-steps"><li><span class="step-number">1</span><div><strong>Understand the task</strong><p id="step-task">Identify types, or locate and count visible candies.</p></div></li><li><span class="step-number">2</span><div><strong>Find a fitting setup</strong><p id="step-model">A small classifier or object detector, depending on the output.</p></div></li><li><span class="step-number">3</span><div><strong>Check, then improve</strong><p id="step-check">Test on separate photos. Keep an improvement only if it helps.</p></div></li></ol>
+            <div class="output-preview"><span class="tiny-label">EXAMPLE OUTPUT</span><div id="output-art" class="candy-art" aria-hidden="true"><span class="candy c1"></span><span class="candy c2"></span><span class="candy c3"></span><span class="candy c4"></span><span class="candy c5"></span><span class="chart-bar b1"></span><span class="chart-bar b2"></span><span class="chart-bar b3"></span><span class="chart-bar b4"></span></div><p id="output-description">Candy labels on your photo, with counts when detection is supported.</p><span class="illustration-label">Illustration, not a model result</span></div>
+            <p class="platform-note">Two demo recipes today. More everyday tasks through new recipes.</p>
+          </aside>
+        </div>
+        <footer id="boundaries"><span aria-hidden="true">◌</span><p><strong>Your files, with a clear boundary.</strong> This prototype has no upload endpoint. Local processing and any optional cloud metadata must be verified in the real app.</p><a href="/docs/design.svg">View screen concept ↗</a></footer>
+      </main>
+    </div>
+  </div>
+</body>
+</html>

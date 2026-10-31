@@ -1,0 +1,12 @@
+{
+  "name": "local-ai-lab",
+  "version": "0.1.0",
+  "private": true,
+  "description": "A local AI task setup and tuning workbench. Hackathon design starter.",
+  "type": "module",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "dev": "node server.mjs",
+    "check": "node --check server.mjs && node --check app.js"
+  }
+}
