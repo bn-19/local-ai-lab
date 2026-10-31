@@ -1,0 +1,13 @@
+{
+  "name": "local-lab-web",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "check": "node --check src/app.js && node --check src/api.js && node --check src/dashboard.js && node --check scripts/build.mjs && node --check scripts/serve.mjs",
+    "test": "node --test test/*.test.mjs",
+    "build": "npm run check && node scripts/build.mjs",
+    "dev": "node scripts/serve.mjs"
+  }
+}

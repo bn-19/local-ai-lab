@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f7f7f2"><meta name="description" content="Create dashboards from CSV files with local models.">
+  <title>Local Lab</title>
+  <link rel="icon" href="./favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="./src/styles.css">
+  <script type="module" src="./src/app.js"></script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to workspace</a>
+<div class="shell">
+  <aside class="rail">
+    <a class="brand" href="./" aria-label="Local Lab home"><img src="./favicon.svg" width="34" height="34" alt=""><span>Local Lab</span></a>
+    <nav aria-label="Workspace"><button class="nav active" data-view="workspace"><span aria-hidden="true">⊞</span> Workspace</button><button class="nav" data-view="saved"><span aria-hidden="true">▤</span> Saved tasks <span id="saved-count" class="count">0</span></button><button class="nav" data-view="activity"><span aria-hidden="true">≋</span> Activity</button></nav>
+    <div class="rail-bottom"><strong id="rail-device" hidden></strong><button class="text-button" id="connection-link">Connect your Mac <span aria-hidden="true">↗</span></button></div>
+  </aside>
+  <div class="body">
+    <header class="topbar"><strong id="page-name">Workspace</strong><span id="connection-badge" class="badge">Not connected</span></header>
+    <main id="main" tabindex="-1">
+      <div id="notice" role="status" aria-live="polite" hidden></div>
+      <section id="workspace-view">
+        <div class="page-heading"><h1>New dashboard</h1><div id="readiness" hidden></div></div>
+        <section id="runtime-panel" class="runtime-panel" hidden></section>
+        <div class="workbench">
+          <section class="task-panel" aria-labelledby="task-heading">
+            <form id="task-form">
+              <div class="section-heading"><h2 id="task-heading"><label for="task">What do you want to understand?</label></h2></div>
+              <textarea id="task" rows="3" maxlength="2000" placeholder="Compare monthly sales by product"></textarea>
+              <div class="file-zone"><label for="csv">CSV file</label><input id="csv" type="file" accept=".csv,text/csv"></div>
+              <div id="profile" hidden></div>
+              <div class="form-footer"><button type="button" class="text-button" id="sample-button">Open sample</button><button class="primary" type="submit" id="create-button">Connect your Mac ↗</button></div>
+            </form>
+          </section>
+        </div>
+        <section id="job-panel" class="job-panel" aria-live="polite" hidden></section>
+        <section id="dashboard" hidden aria-labelledby="dashboard-title"></section>
+      </section>
+      <section id="saved-view" hidden><h1>Saved tasks</h1><div id="saved-list"></div></section>
+      <section id="activity-view" hidden><h1>Activity</h1><div id="activity-list"></div></section>
+      <section id="connection-view" hidden>
+        <h1>Connect your Mac</h1>
+        <div class="connection-layout">
+          <section class="boundary">
+            <form id="pair-form"><label for="pair-token">Pairing token</label><input id="pair-token" type="password" autocomplete="off" spellcheck="false" required><button class="primary" type="submit">Connect to my Mac</button></form>
+            <div class="connection-actions"><button class="secondary" id="retry-connection">Check connection</button><button class="secondary" id="disconnect">Disconnect</button></div>
+            <p id="connection-detail" role="status" hidden></p>
+          </section>
+          <section class="instructions">
+            <details open><summary>Start companion</summary><ol><li>Project dependencies<code>npm install</code></li><li>Start server<code>LOCAL_LAB_ORIGIN=https://local-lab-bn-19s-projects.vercel.app npm run dev</code></li><li>Pairing token<code>cat .local-lab/pairing-token</code></li></ol><a class="text-button" href="http://127.0.0.1:4173/app/">Open local workspace ↗</a></details>
+            <details class="data-access"><summary>Data access</summary><dl><dt>CSV and model output</dt><dd>Your Mac</dd><dt>Relay coordination</dt><dd>Job IDs and scores</dd><dt>Pairing token</dt><dd>This tab, until disconnect</dd></dl></details>
+          </section>
+        </div>
+      </section>
+    </main>
+  </div>
+</div>
+<noscript><p>Enable JavaScript to use Local Lab.</p></noscript>
+</body></html>

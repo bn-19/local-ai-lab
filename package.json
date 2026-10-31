@@ -1,12 +1,32 @@
 {
   "name": "local-ai-lab",
-  "version": "0.1.0",
+  "version": "0.2.0.0",
   "private": true,
-  "description": "A local AI task setup and tuning workbench. Hackathon design starter.",
+  "description": "Local CSV analytics with a bounded local model, Agent Relay handoffs and durable Terse jobs",
   "type": "module",
-  "engines": { "node": ">=22" },
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
-    "dev": "node server.mjs",
-    "check": "node --check server.mjs && node --check app.js"
+    "dev": "node scripts/runtime.mjs server",
+    "check": "node scripts/check.mjs",
+    "runtime:actors": "node scripts/runtime.mjs actors",
+    "runtime:ollama": "node scripts/runtime.mjs ollama",
+    "setup:relay": "node scripts/setup-relay.mjs",
+    "test": "node --test test/*.test.mjs",
+    "test:acceptance": "node scripts/acceptance.mjs"
+  },
+  "dependencies": {
+    "@agent-relay/sdk": "15.0.1",
+    "@duckdb/node-api": "1.4.1-r.3",
+    "terse-cli": "0.14.9",
+    "terse-sdk": "0.14.9"
+  },
+  "allowScripts": {
+    "bun": true,
+    "esbuild": true
+  },
+  "devDependencies": {
+    "bun": "1.4.4"
   }
 }
