@@ -112,6 +112,7 @@ def main():
     split = [split_of(r["image"], cfg["seed"]) for r in rows]
     idx = {s: torch.tensor([i for i, v in enumerate(split) if v == s]) for s in ("train", "development", "heldout")}
     x = features(a.data, rows, cfg["image_size"], cache_dir, device)
+    mu = sd = None
     if cfg["normalize_features"]:
         mu, sd = x[idx["train"]].mean(0), x[idx["train"]].std(0) + 1e-6
         x = (x - mu) / sd
@@ -157,7 +158,12 @@ def main():
     held_acc, _, _ = evaluate("heldout")
     train_acc, _, _ = evaluate("train")
     ckpt = os.path.join(a.out, "head.pt")
-    torch.save({"labels": labels, "config": cfg, "state": head.state_dict()}, ckpt)
+    # Everything predict.py needs to reproduce a prediction: label order, config, head weights and the
+    # training-split normalization statistics (None when normalization was off).
+    torch.save({"labels": labels, "config": cfg, "state": head.state_dict(), "mean": mu, "std": sd,
+                "backbone": "torchvision resnet18 IMAGENET1K_V1", "splits": {s: sorted({rows[i]["image"] for i in idx[s].tolist()}) for s in idx}}, ckpt)
+    with open(os.path.join(a.out, "config.json"), "w") as f:
+        json.dump(cfg, f, indent=1)
     print(
         json.dumps(
             {

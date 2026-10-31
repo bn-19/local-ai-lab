@@ -25,6 +25,36 @@ Labelled crops of nine fun-size bars (Snickers, Twix, Milky Way, Midnight Milky 
 
 Knobs: epochs 1–40, lr 1e-4–2e-2, weight_decay 0–1e-2, hidden 0–512, normalize_features, class_balance.
 
+## In the app
+
+One box for everything. The model picker (`POST /api/models/recommend`) routes by task wording: a request to train, tune, teach, recognize, classify or detect, with no CSV or document attached, resolves to kind `tune` and the candidates are tuning recipes instead of Ollama models, with the same readiness honesty (Python runtime missing, recipe data missing). Everything else keeps Boaz's analytics, document and text paths untouched.
+
+Workspace flow: describe the task → Review setup shows the recipe, backbone and data → Run task starts six rounds → the setup form folds away and the tuner panel takes over: baseline → best held-out climb, a round table with Promoted badges, and the executor, judge and proposer as a conversation (the proposer bubbles are the Relay hand-offs). Cancel is on the panel. When a best round exists, the measured local-versus-GPT table appears under it.
+
+**Save model / New model** sit in the workspace toolbar once work is open. Save model names the current task or tuning run and writes `saved:<id>` (a pointer, nothing copied). New model clears the workspace; unsaved work stays in task history and nothing on disk is deleted. The Saved page lists saved models first, then task history, and Open in workspace reattaches to a tuning run by id, including after a companion restart.
+
+API additions: `POST /api/saved {kind: task|tuning, refId, name}`; `/api/state` now includes `tunings` and `saved`; `GET /api/tuning/recipes` includes the measured benchmark. Tuning jobs carry the tuning id as their task id so the live activity panel groups them.
+
+## Reusing a trained head (hand-off)
+
+`train.py` writes `head.pt` and `config.json` to `--out`. The checkpoint holds `labels` (class order), `config`, `state` (head weights), `mean` and `std` (training-split feature statistics when `normalize_features` is on, else null), `backbone` and `splits` (image file names per split). Metrics are the JSON line on stdout.
+
+`predict.py` loads a head and classifies crops with the exact training preprocessing: crop the box, resize to `image_size` square, ImageNet normalisation, frozen ResNet-18 IMAGENET1K_V1 with the classifier removed (512-d), feature mean/std from the checkpoint, head, softmax.
+
+```sh
+# reproduce the best head deterministically (seed 7, committed data, about 40 s cold, 1 s with the feature cache)
+python3 -I recipes/candy-vision/train.py --data recipes/candy-vision/candies-small \
+  --config '{"epochs":30,"lr":0.002,"weight_decay":0.0001,"hidden":256,"normalize_features":true}' \
+  --out .local-lab/tuning/best --cache .local-lab/tuning/cache/candy-vision
+# classify crops from the held-out split, or one photo with boxes
+python3 -I recipes/candy-vision/predict.py --head .local-lab/tuning/best/head.pt --data recipes/candy-vision/candies-small --split heldout --limit 5
+python3 -I recipes/candy-vision/predict.py --head .local-lab/tuning/best/head.pt --image recipes/candy-vision/candies-small/images/IMG_1946.jpg --box 236,262,179,165
+```
+
+Verified 2026-10-31: that config scores 99.3% held-out, and `IMG_1946.jpg` box `236,262,179,165` predicts `Snickers` (p = 0.93), matching its label. Class order is alphabetical: 100_Grand, 3_Musketeers, Baby_Ruth, Butterfingers, Crunch, Midnight_Milky_Way, Milky_Way, Snickers, Twix.
+
+There are no detector weights. The recipe classifies crops from boxes you already have; a photo with several bars needs a box source first (the committed `annotations.csv` for known photos, or a separate detector).
+
 ## Run it
 
 Requirements beyond the main app: Python 3 with `torch`, `torchvision`, `pillow` on PATH as `python3` (or set `LOCAL_LAB_PYTHON`). The first run downloads ResNet-18 weights (about 45 MB) from PyTorch.

@@ -1,5 +1,6 @@
 import {modelInventoryView} from './model-inventory.js';
 import {showAgentLoop,hideAgentLoop} from './agent-loop.js';
+import {showTuning,hideTuning} from './tuning.js';
 import { LocalAPI, selectActivityTask } from './api.js';
 import { element as el, chartView, number, sampleDashboard, measureColumns } from './dashboard.js';
 const $ = id => document.getElementById(id);
@@ -7,14 +8,15 @@ const api = new LocalAPI();
 let selection=null,selectionKey='';
 const preferences=()=>({priority:$('model-priority').value,allowDownload:$('allow-download').checked,...($('download-budget').value!==''?{maxDownloadGB:Number($('download-budget').value)}:{})});
 const requestKey=()=>JSON.stringify([$ ('task').value.trim(),dataset?.id,preferences()]);
-let health=null, dataset=null, currentTask=null, activeJob=null, timer=null, sample=false, busy=false, pairing=false, epoch=0, taskLoad=0;
+let health=null, dataset=null, currentTask=null, currentTuning=null, activeJob=null, timer=null, sample=false, busy=false, pairing=false, epoch=0, taskLoad=0;
+const savedRefs=new Map(); // refId → saved model name, from the companion's saved list
 const views=['workspace','saved','activity','connection'];
 function notify(message, error=false) { $('notice').textContent=message; $('notice').className=error?'error':''; $('notice').hidden=false; }
 function view(name) {
   views.forEach(v=>$(v+'-view').hidden=v!==name);
   document.querySelectorAll('[data-view]').forEach(b=>{const active=b.dataset.view===name;b.classList.toggle('active',active);if(active)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');});
   $('main').focus({preventScroll:true});
-  $('page-name').textContent={workspace:'Workspace',saved:'Saved tasks',activity:'Monitor',connection:'Connect your Mac'}[name];
+  $('page-name').textContent={workspace:'Workspace',saved:'Saved',activity:'Monitor',connection:'Connect your Mac'}[name];
 }
 function updateConnection() {
   $('connection-badge').textContent=api.connected?'● Connected to your Mac':'○ Not connected';
@@ -46,9 +48,9 @@ async function pair(token) {
   } finally {pairing=false;submit.disabled=false;}
 }
 function disconnect() {
-  hideAgentLoop();
+  hideAgentLoop();hideTuning();currentTuning=null;savedRefs.clear();$('save-form').hidden=true;
   selection=null;selectionKey='';
-  epoch++;api.disconnect();clearTimeout(timer);health=null;dataset=null;currentTask=null;activeJob=null;sample=false;busy=false;
+  epoch++;api.disconnect();clearTimeout(timer);health=null;dataset=null;currentTask=null;activeJob=null;sample=false;busy=false;updateWorkButtons();
   $('csv').value='';$('pair-token').value='';$('task').value='';$('saved-count').textContent='0';
   for(const id of ['profile','runtime-panel','job-panel','dashboard']) {$(id).hidden=true;$(id).replaceChildren();}
   $('setup-workbench').hidden=false;$('workspace-heading').hidden=false;$('edit-setup').hidden=true;
@@ -62,14 +64,17 @@ async function run(action) {
 function renderRuntime() {
   const panel=$('runtime-panel');panel.hidden=!selection;
   if(!selection){panel.replaceChildren();return;}
-  const rec=selection.selected;
-  const installed=rec&&health?.models?.some(m=>m.id===rec.id&&m.digest?.replace(/^sha256:/,'')===rec.digest);
-  panel.replaceChildren(el('div',{class:'runtime-row'},el('h2',{},rec?.id||'No compatible model'),rec?el('button',{type:'button',class:'secondary',disabled:busy||installed||!selection.runtime.ready,onClick:()=>run(install)},installed?'Ready':selection.runtime.ready?`Download · ${number(rec.downloadRequiredGB)} GB`:'Runtime setup required'):null));
+  const rec=selection.selected, tune=selection.requirements.kind==='tune';
+  const installed=rec&&(tune?rec.installed:health?.models?.some(m=>m.id===rec.id&&m.digest?.replace(/^sha256:/,'')===rec.digest));
+  const kindLabel={tune:'Tune a model',csv:'CSV analytics',document:'Document',text:'Text',code:'Code'}[selection.requirements.kind]||selection.requirements.kind;
+  panel.replaceChildren(el('div',{class:'runtime-row'},el('div',{},el('span',{class:'badge'+(rec?' connected':'')},kindLabel),el('h2',{},rec?(tune?`${rec.id} · ${rec.backbone}`:rec.id):'No compatible model')),rec?el('button',{type:'button',class:'secondary',disabled:tune||busy||installed||!selection.runtime.ready,onClick:()=>run(install)},tune?(selection.runtime.ready&&installed?'Ready':'Setup required'):installed?'Ready':selection.runtime.ready?`Download · ${number(rec.downloadRequiredGB)} GB`:'Runtime setup required'):null));
   if(selection.runtimeSetup)panel.append(el('p',{},selection.runtimeSetup));
+  if(tune&&rec)panel.append(el('p',{class:'muted'},`${rec.description} Data: ${rec.data}. Six rounds: executor trains, judge scores held-out, proposer changes one knob. Nothing leaves this Mac except job ids and development scores over Relay.`));
   const details=el('details',{},el('summary',{},'Setup details'),el('dl',{},el('dt',{},'Task'),el('dd',{},selection.requirements.kind),el('dt',{},'Memory'),el('dd',{},`${number(selection.machine.memoryGB)} GB`),el('dt',{},'Free disk'),el('dd',{},`${number(selection.machine.freeDiskGB)} GB`)));
   for(const candidate of selection.candidates)details.append(el('h3',{},candidate.id),el('p',{},candidate.reasons.join('. ')),el('p',{},`${candidate.runtime} · ${candidate.memoryBudgetGB} GB memory budget · ${candidate.diskBudgetGB} GB disk budget`),el('p',{},candidate.tuning));
   const source=selection.catalogSource;
-  details.append(el('p',{},source?.kind==='supabase'&&source.status==='synced'&&Number.isFinite(source.checkedAt)?'Shared catalog · successful read':'Built-in catalog'),el('p',{},selection.selectionBasis));panel.append(details,modelInventoryView(api));
+  details.append(el('p',{},tune?'Tuning recipe registry':source?.kind==='supabase'&&source.status==='synced'&&Number.isFinite(source.checkedAt)?'Shared catalog · successful read':'Built-in catalog'),el('p',{},selection.selectionBasis));panel.append(details);
+  if(!tune)panel.append(modelInventoryView(api));
 }
 async function recommend() {
   const key=requestKey(),generation=epoch;busy=true;updateConnection();notify('Checking your Mac and compatible models…');
@@ -121,6 +126,11 @@ async function createTask(event) {
   if(!$('task').value.trim())throw new Error('Describe what you want to understand.');
   if(!selection||selectionKey!==requestKey()){await recommend();return;}
   if(!selection.selected)throw new Error('No compatible model for this task and machine. Review setup details.');
+  if(selection.requirements.kind==='tune'){
+    if(!selection.runtime.ready)throw new Error(selection.runtimeSetup||'Recipe runtime setup required.');
+    const result=await api.post('/api/tuning',{recipe:selection.selected.id,rounds:6,request:$('task').value.trim()});
+    openTuning(result.id);return;
+  }
   if(!health.models?.some(m=>m.id===selection.selected.id))throw new Error('Download the selected model first.');
   const modelId=selection.selected.id;
   if(!dataset){const result=await api.post('/api/tasks',{request:$('task').value.trim(),modelId,preferences:preferences()});currentTask=result.taskId;taskLoad++;selectActivityTask(currentTask);sample=false;await watchJob(result.jobId);return;}
@@ -173,10 +183,52 @@ async function watchEvaluation(taskId,initialJobId) {
   };
   await poll();
 }
+// Open a tuning run in the workspace: the setup form folds away and the tuner panel takes over.
+function openTuning(id) {
+  taskLoad++;hideAgentLoop();currentTask=null;currentTuning=id;sample=false;
+  $('dashboard').replaceChildren();$('dashboard').hidden=true;$('job-panel').hidden=true;
+  $('setup-workbench').hidden=true;$('workspace-heading').hidden=true;$('edit-setup').hidden=false;
+  selectActivityTask(id);
+  showTuning(id,api,{onChange:()=>updateWorkButtons()});
+  updateWorkButtons();$('notice').hidden=true;
+  $('tuning-panel').scrollIntoView({block:'start',behavior:'smooth'});
+}
+// Save model and New model act on whatever the workspace currently shows: a task or a tuning run.
+function currentWork() {
+  if(currentTuning)return {kind:'tuning',refId:currentTuning,defaultName:'Candy vision head'};
+  if(currentTask&&!sample)return {kind:'task',refId:currentTask,defaultName:$('dashboard-title')?.textContent?.trim()||'Analysis model'};
+  return null;
+}
+function updateWorkButtons() {
+  const work=currentWork();
+  $('work-actions').hidden=!work||!api.connected;
+  if(!work)$('save-form').hidden=true;
+  const name=work&&savedRefs.get(work.refId);
+  $('save-model').textContent=name?`Saved as “${name}”`:'Save model';
+  $('save-model').disabled=Boolean(name);
+}
+async function saveCurrent(name) {
+  const work=currentWork();if(!work)throw new Error('Open a task or a tuning run first.');
+  const entry=await api.post('/api/saved',{kind:work.kind,refId:work.refId,name});
+  savedRefs.set(entry.refId,entry.name);$('save-form').hidden=true;updateWorkButtons();await refreshSavedCount();
+  notify(`Saved “${entry.name}”. Find it under Saved.`);
+}
+function newModel() {
+  const work=currentWork();
+  const unsaved=work&&!savedRefs.has(work.refId);
+  hideTuning();hideAgentLoop();currentTask=null;currentTuning=null;sample=false;selection=null;selectionKey='';
+  for(const id of ['profile','runtime-panel','job-panel','dashboard']) {$(id).hidden=true;$(id).replaceChildren();}
+  dataset=null;$('csv').value='';$('task').value='';
+  $('setup-workbench').hidden=false;$('workspace-heading').hidden=false;$('edit-setup').hidden=true;
+  selectActivityTask(null);updateConnection();updateWorkButtons();
+  if(unsaved)notify('Previous work was not saved as a model. It stays in task history; nothing on disk was deleted.');else $('notice').hidden=true;
+  $('task').focus();
+}
 async function loadTask(id) {
   const generation=epoch, load=++taskLoad;const task=await api.get(`/api/tasks/${encodeURIComponent(id)}`);if(generation!==epoch||load!==taskLoad)return;
   $('dashboard').replaceChildren();$('dashboard').hidden=true;
-  currentTask=task.id;selectActivityTask(currentTask);sample=false;
+  hideTuning();currentTuning=null;
+  currentTask=task.id;selectActivityTask(currentTask);sample=false;updateWorkButtons();
   hideAgentLoop();
   if(task.textResult){renderDocument({...task,documentResult:{...task.textResult,name:'Answer',parts:[],model:task.model}});return;}
   if(task.documentResult){renderDocument(task);return;}
@@ -250,12 +302,26 @@ function renderDashboard(data,evaluation=null,filterValue='',fineTune=null,liveR
   if(Array.isArray(liveReport?.answer)){if(candy)reportPanel.append(chartView({title:liveReport.unit,kind:'bar',points:liveReport.answer}));else reportPanel.append(el('ol',{},...liveReport.answer.map(row=>el('li',{},`${row.product}: ${number(row.revenue)}`))));}
   panel.append(el('details',{class:'workflow-disclosure','data-workflow':'report',open:reportOpen},el('summary',{},candy?'Candy report':'Retail report'),reportPanel),el('details',{class:'workflow-disclosure','data-workflow':'improve',open:improveOpen},el('summary',{},'Improve model'),...(candy?[]:[evalPanel]),trainingPanel));
 }
-async function refreshSavedCount(){const generation=epoch;const state=await api.get('/api/state');if(generation===epoch)$('saved-count').textContent=String(state.tasks?.length||0);return state;}
+async function refreshSavedCount(){
+  const generation=epoch;const state=await api.get('/api/state');
+  if(generation===epoch){savedRefs.clear();for(const s of state.saved||[])savedRefs.set(s.refId,s.name);$('saved-count').textContent=String((state.saved?.length||0)+(state.tasks?.length||0));updateWorkButtons();}
+  return state;
+}
 async function renderSaved() {
-  const panel=$('saved-list');panel.replaceChildren(el('p',{class:'empty'},api.connected?'Loading saved tasks…':'Connect your Mac'));
+  const panel=$('saved-list');panel.replaceChildren(el('p',{class:'empty'},api.connected?'Loading saved work…':'Connect your Mac'));
   if(!api.connected)return;const state=await refreshSavedCount();panel.replaceChildren();
-  if(!state.tasks?.length)panel.append(el('p',{class:'empty'},'No saved tasks'));
-  for(const task of state.tasks||[])panel.append(el('div',{class:'task-row'},el('div',{},el('h3',{},task.request||task.id),el('p',{},`${task.status} · ${task.id}`)),el('button',{class:'secondary',onClick:()=>run(async()=>{await loadTask(task.id);view('workspace');$('dashboard').scrollIntoView({block:'start'});})},'Open task')));
+  const pct=v=>Number.isFinite(v)?(v*100).toFixed(1)+'%':'not scored';
+  panel.append(el('h2',{},'Saved models'));
+  if(!state.saved?.length)panel.append(el('p',{class:'empty'},'No saved models yet. Open a task or tuning run and press Save model.'));
+  for(const item of state.saved||[]){
+    const tuning=item.kind==='tuning';
+    const live=tuning?(state.tunings||[]).find(t=>t.id===item.refId):(state.tasks||[]).find(t=>t.id===item.refId);
+    const summary=tuning?`Vision model · ${live?.recipe||item.summary?.recipe} · best held-out ${pct(live?.best?.heldout_accuracy??item.summary?.heldout_accuracy)} · ${live?.status||item.summary?.status}`:`Analysis model · ${item.summary?.model||'local model'} · ${live?.status||item.summary?.status}`;
+    panel.append(el('div',{class:'task-row'},el('div',{},el('h3',{},item.name),el('p',{},summary),el('p',{},`${item.summary?.request||''} · saved ${new Date(item.savedAt).toLocaleString()}`)),el('button',{class:'secondary',onClick:()=>run(async()=>{if(tuning)openTuning(item.refId);else{await loadTask(item.refId);$('dashboard').scrollIntoView({block:'start'});}view('workspace');})},'Open in workspace')));
+  }
+  panel.append(el('h2',{},'Task history'));
+  if(!state.tasks?.length)panel.append(el('p',{class:'empty'},'No tasks yet'));
+  for(const task of state.tasks||[])panel.append(el('div',{class:'task-row'},el('div',{},el('h3',{},task.request||task.id),el('p',{},`${task.status} · ${task.id}${savedRefs.has(task.id)?' · saved as “'+savedRefs.get(task.id)+'”':''}`)),el('button',{class:'secondary',onClick:()=>run(async()=>{await loadTask(task.id);view('workspace');$('dashboard').scrollIntoView({block:'start'});})},'Open task')));
 }
 async function renderActivity() { /* Live monitor is owned by the activity observer. */ }
 document.querySelectorAll('[data-view]').forEach(button=>button.addEventListener('click',()=>{view(button.dataset.view);run(async()=>{if(button.dataset.view==='saved')await renderSaved();if(button.dataset.view==='activity')await renderActivity();});}));
@@ -264,7 +330,11 @@ $('edit-setup').addEventListener('click',()=>{$('setup-workbench').hidden=false;
 for(const id of ['task','model-priority','allow-download','download-budget'])$(id).addEventListener('input',()=>{selection=null;selectionKey='';renderRuntime();updateConnection();});
 $('task-form').addEventListener('submit',event=>run(()=>createTask(event)));
 $('csv').addEventListener('change',()=>run(importCSV));
-$('sample-button').addEventListener('click',()=>{taskLoad++;sample=true;selectActivityTask(null);renderDashboard(sampleDashboard());$('dashboard').scrollIntoView({block:'start',behavior:'smooth'});});
+$('sample-button').addEventListener('click',()=>{taskLoad++;sample=true;hideTuning();currentTuning=null;selectActivityTask(null);renderDashboard(sampleDashboard());updateWorkButtons();$('dashboard').scrollIntoView({block:'start',behavior:'smooth'});});
+$('save-model').addEventListener('click',()=>{const work=currentWork();if(!work)return;$('save-name').value=work.defaultName.slice(0,120);$('save-form').hidden=false;$('save-name').focus();$('save-name').select();});
+$('save-cancel').addEventListener('click',()=>{$('save-form').hidden=true;});
+$('save-form').addEventListener('submit',event=>{event.preventDefault();run(()=>saveCurrent($('save-name').value.trim()));});
+$('new-model').addEventListener('click',newModel);
 $('pair-form').addEventListener('submit',event=>{event.preventDefault();run(()=>pair($('pair-token').value));});
 $('retry-connection').addEventListener('click',()=>run(async()=>{health=await api.get('/api/health');updateConnection();renderRuntime();notify('Your local companion is reachable.');}));
 $('disconnect').addEventListener('click',disconnect);

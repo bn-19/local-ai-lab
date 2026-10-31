@@ -152,9 +152,32 @@ const server = createServer(async (req, res) => {
             .filter(([k]) => k.startsWith("job:"))
             .map(([, v]) => v),
           loops:Object.entries(s).filter(([k])=>k.startsWith("loop:")).map(([,v])=>v),
+          tunings: Object.entries(s).filter(([k]) => k.startsWith("tuning:")).map(([, v]) => v),
+          saved: Object.entries(s).filter(([k]) => k.startsWith("saved:")).map(([, v]) => v).sort((a, b) => b.savedAt - a.savedAt),
           recipe: s.recipe ?? null,
           device: d,
         });
+      }
+      // A saved model is a named pointer to finished work (a task or a tuning run); nothing is copied or deleted.
+      if (pathname === "/api/saved" && req.method === "POST") {
+        const b = await jsonBody(req), s = await state();
+        if (!["task", "tuning"].includes(b.kind) || !/^[a-f0-9-]{36}$/.test(String(b.refId))) return send(400, { error: "Choose a task or tuning run to save" });
+        const ref = s[b.kind + ":" + b.refId];
+        if (!ref) return send(404, { error: "Nothing to save under that id" });
+        if (typeof b.name !== "string" || !b.name.trim() || b.name.length > 120) return send(400, { error: "Name the saved model in 1–120 characters" });
+        const existing = Object.values(s).find((v) => v?.kind && v.refId === b.refId && typeof v.savedAt === "number");
+        const entry = {
+          id: existing?.id ?? randomUUID(),
+          name: b.name.trim(),
+          kind: b.kind,
+          refId: b.refId,
+          summary: b.kind === "tuning"
+            ? { recipe: ref.recipe, status: ref.status, heldout_accuracy: ref.best?.heldout_accuracy ?? null, rounds: ref.rounds?.length ?? 0, request: ref.request }
+            : { request: ref.request, status: ref.status, model: ref.model?.id ?? null, datasetId: ref.datasetId ?? null },
+          savedAt: Date.now(),
+        };
+        await save("saved:" + entry.id, entry);
+        return send(201, entry);
       }
       if (pathname === "/api/files" && req.method === "POST") {
         const id=randomUUID(), name=path.basename(decodeURIComponent(String(req.headers['x-filename']||'document.txt'))).slice(0,160);
@@ -220,7 +243,10 @@ const server = createServer(async (req, res) => {
           Object.entries(recipes).map(([id, r]) => ({
             id,
             description: r.description,
+            backbone: r.backbone,
+            data: r.data,
             knobs: r.knobs,
+            benchmark: r.benchmark,
           })),
         );
       if (pathname === "/api/tuning" && req.method === "POST")
