@@ -1,3 +1,5 @@
+import http from 'node:http';
+import {setTimeout as delay} from 'node:timers/promises';
 import {open,readFile,chmod,lstat} from 'node:fs/promises';
 import {randomBytes} from 'node:crypto';
 import net from 'node:net';
@@ -15,4 +17,25 @@ export async function ensureActorSecret(file){
  try{const handle=await open(file,'wx',0o600);try{await handle.writeFile(randomBytes(32).toString('hex'));}finally{await handle.close();}}catch(e){if(e.code!=='EEXIST')throw e;}
  const stat=await lstat(file);if(!stat.isFile()||stat.isSymbolicLink())throw Error('Actor secret must be a regular local file.');
  const secret=(await readFile(file,'utf8')).trim();if(!/^[a-f0-9]{64}$/.test(secret))throw Error('Existing actor secret is invalid; preserved without replacement.');await chmod(file,0o600);return secret;
+}
+
+// Only HTTP status is inspected. Response bodies and transport details never
+// reach Terminal output; each attempt and the overall wait are bounded.
+export async function waitForUI(url,{signal,timeoutMs=45000,intervalMs=250}={}){
+ const deadline=performance.now()+timeoutMs;
+ while(!signal?.aborted){
+  const remaining=deadline-performance.now();if(remaining<=0)break;
+  const ready=await new Promise(resolve=>{
+   let timer;
+   const request=http.get(url,{signal},response=>{response.resume();resolve(response.statusCode===200);request.destroy();});
+   timer=setTimeout(()=>request.destroy(),Math.min(1000,remaining));
+   request.once('error',()=>resolve(false));request.once('close',()=>{clearTimeout(timer);resolve(false);});
+  });
+  if(signal?.aborted)return false;
+  if(ready&&performance.now()<deadline)return true;
+  const pause=Math.min(intervalMs,deadline-performance.now());
+  if(pause>0)try{await delay(pause,undefined,{signal});}catch(e){if(e.name!=='AbortError')throw e;}
+ }
+ if(signal?.aborted)return false;
+ throw Error('Local UI did not become ready within the startup deadline. See private logs in .local-lab/launcher.');
 }
