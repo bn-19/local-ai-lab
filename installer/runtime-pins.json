@@ -1,0 +1,4 @@
+{
+  "node": {"version":"22.23.4","url":"https://nodejs.org/dist/v22.23.4/node-v22.23.4-darwin-arm64.tar.gz","sha256":"c9e1dbc748b33ed2d14f42445191ecaf14c56259c7a9a26d0042c49ec2b66428"},
+  "ollama": {"version":"0.40.13","url":"https://github.com/ollama/ollama/releases/download/v0.40.13/ollama-darwin.tgz","sha256":"bae29252232b9e1358cf5801a7d65a07442af18fb5467cb68c7fc3711f59c511"}
+}

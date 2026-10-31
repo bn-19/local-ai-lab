@@ -160,3 +160,7 @@ The working frontend is in `web/`; the local API is `server.mjs`. Actor, model, 
 ### Credits
 
 Built with Terse, Agent Relay, Supabase, Ollama, MLX, DuckDB and Vercel. The candy dataset is [FiveThirtyEight's candy-power-ranking](https://github.com/fivethirtyeight/data/tree/master/candy-power-ranking), used under **CC BY 4.0**. Screenshots show the working production interface, not generated mockups.
+
+## Mac installer helpers
+
+The [Mac installation guide](installer/INSTALL.md) documents the source-bundled Apple Silicon installer. Installable ZIP assets will be listed on [GitHub Releases](https://github.com/bn-19/local-ai-lab/releases) when a verified installer release is published. Models are downloaded separately through explicit app setup; no weights or account credentials are bundled.

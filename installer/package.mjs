@@ -1,0 +1,12 @@
+import {execFileSync} from 'node:child_process';import {mkdir,readFile,writeFile,copyFile,chmod,lstat} from 'node:fs/promises';import path from 'node:path';import {createHash} from 'node:crypto';
+const [commit,outputArg]=process.argv.slice(2);if(!/^[a-f0-9]{40}$/.test(commit??''))throw Error('Usage: node installer/package.mjs FINAL_MERGED_40_CHAR_SHA OUTPUT_DIRECTORY');
+const output=path.resolve(outputArg??'dist/installer');await mkdir(output,{recursive:true});const name='Local-Lab-Mac-Installer',bundle=path.join(output,name);await mkdir(bundle,{recursive:false});
+const archive=path.join(bundle,'source.tar.gz');execFileSync('git',['archive','--format=tar.gz','--prefix=local-ai-lab/','--output='+archive,commit]);
+const files=['installer/Install.command','installer/Start.command','installer/Stop.command','installer/runtime-pins.json','installer/macos/install.sh','installer/macos/common.sh'];
+for(const file of files){const destination=path.join(bundle,file.endsWith('.command')?path.basename(file):file);await mkdir(path.dirname(destination),{recursive:true});const content=execFileSync('git',['show',commit+':'+file]);await writeFile(destination,content,{mode:file.endsWith('.command')||file.endsWith('.sh')?0o700:0o600});}
+const sha256=createHash('sha256').update(await readFile(archive)).digest('hex');await writeFile(path.join(bundle,'release-manifest.json'),JSON.stringify({schemaVersion:1,source:{commit,sha256,file:'source.tar.gz'},createdAt:new Date().toISOString(),platform:'darwin-arm64',minimumMacOS:'14',modelsBundled:false},null,2));
+await writeFile(path.join(bundle,'READ-ME.txt'),execFileSync('git',['show',commit+':installer/INSTALL.md']));
+const zip=path.join(output,name+'.zip');try{await lstat(zip);throw Error('Output ZIP already exists; choose a new output directory');}catch(e){if(e.code!=='ENOENT')throw e;}
+execFileSync('/usr/bin/ditto',['-c','-k','--keepParent',bundle,zip]);await copyFile(path.join(bundle,'release-manifest.json'),path.join(output,'release-manifest.json'));
+await writeFile(path.join(output,'SHA256SUMS'),createHash('sha256').update(await readFile(zip)).digest('hex')+'  '+path.basename(zip)+'\n'+createHash('sha256').update(await readFile(path.join(output,'release-manifest.json'))).digest('hex')+'  release-manifest.json\n');
+console.log(JSON.stringify({zip,sourceCommit:commit,sourceSHA256:sha256,zipSHA256:createHash('sha256').update(await readFile(zip)).digest('hex')},null,2));
