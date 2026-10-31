@@ -53,6 +53,8 @@ function renderRuntime() {
   const runtime=health.runtimes.ollama;
   const panel=$('runtime-panel');panel.hidden=false;
   panel.replaceChildren(el('div',{class:'runtime-row'},el('div',{},el('p',{class:'eyebrow'},'YOUR LOCAL SETUP'),el('h2',{},rec?.id || 'Model recommendation unavailable'),el('p',{},rec?.reason || 'The companion will recommend a supported model.'),el('p',{},installed?'Installed on your Mac':rec?`Estimated download: ${rec.downloadGB} GB. Installation starts only when you approve.`:'Check companion setup.')),el('button',{class:'primary',disabled:!runtime?.ready || !rec || busy || installed,onClick:()=>run(install)},installed?'Installed':runtime?.ready?'Install recommended model':'Ollama required')));
+  const setupErrors=Object.values(health.runtimes).map(r=>r.error).filter(Boolean);
+  if(setupErrors.length)panel.append(el('details',{},el('summary',{},'Setup help'),setupErrors.map(error=>el('p',{},error))));
   panel.append(el('p',{},`Model runtime: ${runtime?.ready?'ready':'not available'}. Saved job state: ${health.runtimes.terse?.ready?'ready':'Terse unavailable'}. Agent handoffs: ${health.runtimes.relay?.ready?'connected':health.runtimes.relay?.error || 'Relay not configured'}.`));
 }
 async function install() {
@@ -86,7 +88,7 @@ async function createTask(event) {
   if(!$('task').value.trim())throw new Error('Describe what you want to understand.');
   const operation=$('operation').value;
   if(!$('group-column').value || (operation!=='count'&&!$('measure-column').value) || (operation==='product_sum'&&!$('measure-column2').value))throw new Error('Choose the measure and group columns before continuing.');
-  const result=await api.post('/api/tasks',{request:$('task').value.trim(),datasetId:dataset.id,measure:{operation,column:$('measure-column').value||undefined,column2:operation==='product_sum'?$('measure-column2').value:undefined},dateColumn:$('date-column').value||null,groupColumn:$('group-column').value,filterColumn:$('filter-column').value||null,negativePolicy:$('negative-policy').value,reuseRecipe:true});
+  const result=await api.post('/api/tasks',{request:$('task').value.trim(),datasetId:dataset.id,measure:{operation,column:$('measure-column').value||undefined,column2:operation==='product_sum'?$('measure-column2').value:undefined},dateColumn:$('date-column').value||null,groupColumn:$('group-column').value,filterColumn:$('filter-column').value||null,negativePolicy:$('negative-policy').value,reuseRecipe:false});
   sample=false;currentTask=result.taskId;await watchJob(result.jobId);
 }
 async function watchJob(id,taskId=currentTask) {
@@ -111,6 +113,27 @@ async function watchJob(id,taskId=currentTask) {
   };
   await poll();
 }
+async function watchEvaluation(taskId,initialJobId) {
+  clearTimeout(timer);busy=true;updateConnection();renderRuntime();
+  const generation=epoch;let polling=false;
+  const poll=async()=>{
+    if(generation!==epoch || polling)return;polling=true;
+    try {
+      const task=await api.get(`/api/tasks/${encodeURIComponent(taskId)}`);
+      const state=await api.get('/api/state');if(generation!==epoch)return;
+      const evaluation=task.evaluation;
+      const active=state.jobs?.filter(j=>j.taskId===taskId&&['queued','running'].includes(j.status)).at(-1);
+      const jobId=active?.id||initialJobId;activeJob=jobId;
+      const panel=$('job-panel');panel.hidden=false;
+      panel.replaceChildren(el('div',{class:'runtime-row'},el('div',{},el('h2',{},'Evaluating your setup'),el('p',{},`${evaluation?.stage||'Starting'} · ${active?.stage||'Checking measured results'}`)),el('button',{class:'secondary',disabled:!active,onClick:()=>run(async()=>{await api.post(`/api/jobs/${encodeURIComponent(jobId)}/cancel`);notify('Evaluation cancellation requested.');})},'Cancel evaluation')));
+      if(evaluation&&['complete','failed','cancelled'].includes(evaluation.stage)){
+        busy=false;activeJob=null;updateConnection();renderRuntime();await loadTask(taskId);
+        notify(evaluation.stage==='complete'?'Evaluation finished. The measured comparison is below.':evaluation.error||`Evaluation ${evaluation.stage}.`,evaluation.stage!=='complete');
+      }else timer=setTimeout(poll,1000);
+    }catch(error){busy=false;updateConnection();notify(error.message,true);}finally{polling=false;}
+  };
+  await poll();
+}
 async function loadTask(id) {
   const generation=epoch;const task=await api.get(`/api/tasks/${encodeURIComponent(id)}`);if(generation!==epoch)return;currentTask=task.id;sample=false;
   if(task.dashboard)renderDashboard(task.dashboard,task.evaluation);else notify(task.error||`Saved task is ${task.status}.`);
@@ -125,16 +148,20 @@ function renderDashboard(data,evaluation=null,filterValue='') {
   panel.append(el('div',{class:'kpis'},(data.kpis||[]).map(k=>el('div',{class:'kpi'},el('small',{},k.label),el('strong',{},number(k.value))))));
   panel.append(el('div',{class:'charts'},(data.charts||[]).map(chartView)));
   const source=data.source||{};
-  panel.append(el('p',{class:'source-note'},`${number(source.filteredRows??source.rows)} of ${number(source.rows)} rows · ${typeof source.measure==='string'?source.measure:JSON.stringify(source.measure)} · Negative values: ${source.negativePolicy||'as supplied'}. ${sample?'Fictional data included with this preview. No model was run.':`Model: ${data.model?.id||'not reported'} · Configuration: ${data.configuration||'not reported'}.`}`));
+  const measure=typeof source.measure==='string'?source.measure:source.measure?`${{sum:'Sum of',mean:'Average of',count:'Count of rows',product_sum:'Sum of'}[source.measure.operation]||source.measure.operation} ${source.measure.operation==='count'?'':source.measure.column||''}${source.measure.column2?' × '+source.measure.column2:''}`:'Measure not reported';
+  panel.append(el('p',{class:'source-note'},`${number(source.filteredRows??source.rows)} of ${number(source.rows)} rows · ${measure} · Negative values: ${source.negativePolicy||'as supplied'}. ${sample?'Fictional data included with this preview. No model was run.':`Model: ${data.model?.id||'not reported'} · Configuration: ${data.configuration||'not reported'}.`}`));
   if(sample){panel.append(el('p',{class:'sample-caption'},'Explore the filter and chart values. Connect your Mac to create this from your own CSV.'));return;}
   const followup=el('form',{class:'followup'},el('label',{class:'sr-only',for:'followup'},'Ask a follow-up'),el('input',{id:'followup',required:true,maxlength:2000,placeholder:'What else would you like to understand?'}),el('button',{class:'primary',type:'submit',disabled:busy},'Ask a follow-up →'));
   followup.addEventListener('submit',event=>{event.preventDefault();run(async()=>{const result=await api.post(`/api/tasks/${encodeURIComponent(currentTask)}/followup`,{request:$('followup').value.trim()});currentTask=result.taskId;await watchJob(result.jobId);});});panel.append(followup);
-  const evalPanel=el('section',{class:'evaluation'},el('h3',{},'Check and improve this setup'),el('p',{class:'muted'},'Compare real baseline results with one bounded configuration improvement. This changes settings, not model weights.'),el('button',{class:'secondary',disabled:busy,onClick:()=>run(async()=>{const result=await api.post(`/api/tasks/${encodeURIComponent(currentTask)}/evaluate`);await watchJob(result.jobId);})},evaluation?'Run evaluation again':'Evaluate this setup'));
-  if(evaluation)evalPanel.append(el('details',{},el('summary',{},'View measured evaluation results'),el('pre',{},JSON.stringify(evaluation,null,2))));
+  const evalPanel=el('section',{class:'evaluation'},el('h3',{},'Check and improve this setup'),el('p',{class:'muted'},'Compare real baseline results with one bounded configuration improvement. This changes settings, not model weights.'),el('button',{class:'secondary',disabled:busy,onClick:()=>run(async()=>{const result=await api.post(`/api/tasks/${encodeURIComponent(currentTask)}/evaluate`);await watchEvaluation(currentTask,result.jobId);})},evaluation?'Run evaluation again':'Evaluate this setup'));
+  if(evaluation){
+    const score=rows=>{const final=(rows||[]).filter(r=>r.split==='final');return final.length?`${final.filter(r=>r.passed).length} / ${final.length} held-out checks passed`:'Not measured yet';};
+    evalPanel.append(el('p',{class:'muted'},`Baseline: ${score(evaluation.baseline)}. Candidate: ${score(evaluation.tuned)}. Selected configuration: ${evaluation.selected||'comparison in progress'}.`),el('details',{},el('summary',{},'View measured evaluation results'),el('pre',{},JSON.stringify(evaluation,null,2))));
+  }
   else evalPanel.append(el('p',{class:'muted'},'No measured comparison yet.'));
   panel.append(evalPanel);
 }
-async function refreshSavedCount(){const state=await api.get('/api/state');$('saved-count').textContent=String(state.tasks?.length||0);return state;}
+async function refreshSavedCount(){const generation=epoch;const state=await api.get('/api/state');if(generation===epoch)$('saved-count').textContent=String(state.tasks?.length||0);return state;}
 async function renderSaved() {
   const panel=$('saved-list');panel.replaceChildren(el('p',{class:'empty'},api.connected?'Loading saved tasks…':'Connect your Mac to see its saved tasks.'));
   if(!api.connected)return;const state=await refreshSavedCount();panel.replaceChildren();
@@ -147,6 +174,8 @@ async function renderActivity() {
   panel.append(el('div',{class:'activity-item'},el('strong',{},'Integration readiness'),el('p',{},`Terse: ${health.runtimes.terse?.ready?'ready':'unavailable'}. Agent Relay: ${health.runtimes.relay?.ready?'connected':health.runtimes.relay?.error||'not configured'}.`)));
   if(!state.jobs?.length)panel.append(el('p',{class:'empty'},'No local jobs yet.'));
   for(const job of [...(state.jobs||[])].reverse())panel.append(el('div',{class:'activity-item'},el('strong',{},`${job.stage||job.kind||'Job'} · ${job.status}`),el('p',{},job.id),job.error?el('p',{},job.error):null,['queued','running'].includes(job.status)?el('button',{onClick:()=>run(async()=>{view('workspace');await watchJob(job.id);})},'View progress'):null));
+  for(const job of state.jobs||[])if(job.viaRelay)panel.append(el('details',{class:'activity-item'},el('summary',{},`Planner → Evaluator → Planner · ${job.status}`),el('p',{},`Job ${job.id}`),el('p',{},`Request sent: ${job.requestMessageId||'pending'}`),el('p',{},`Work received: ${job.receivedMessageId||'pending'}`),el('p',{},`Completion sent: ${job.completionMessageId||'pending'}`),el('p',{},`Completion received: ${job.completionReceivedId||'pending'}`),job.relayError?el('p',{},job.relayError):null));
+  if(state.device)panel.append(el('details',{class:'activity-item'},el('summary',{},'Persisted device queue'),el('pre',{},JSON.stringify(state.device,null,2))));
   if(state.activity?.length)panel.append(el('details',{},el('summary',{},'Actual handoffs'),el('pre',{},JSON.stringify(state.activity,null,2))));
 }
 document.querySelectorAll('[data-view]').forEach(button=>button.addEventListener('click',()=>{view(button.dataset.view);run(async()=>{if(button.dataset.view==='saved')await renderSaved();if(button.dataset.view==='activity')await renderActivity();});}));
@@ -158,6 +187,6 @@ $('sample-button').addEventListener('click',()=>{sample=true;renderDashboard(sam
 $('pair-form').addEventListener('submit',event=>{event.preventDefault();run(()=>pair($('pair-token').value));});
 $('retry-connection').addEventListener('click',()=>run(async()=>{health=await api.get('/api/health');updateConnection();renderRuntime();notify('Your local companion is reachable.');}));
 $('disconnect').addEventListener('click',disconnect);
-window.addEventListener('pagehide',()=>{api.disconnect();clearTimeout(timer);});
+window.addEventListener('pagehide',disconnect);
 updateConnection();
 // Both hosted and same-origin pages require explicit token pairing.
