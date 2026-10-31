@@ -1,9 +1,11 @@
+import {visionView,pileResultView,pileEstimateView} from './vision.js';
 import {modelInventoryView} from './model-inventory.js';
 import {showAgentLoop,hideAgentLoop} from './agent-loop.js';
 import { LocalAPI, selectActivityTask } from './api.js';
 import { element as el, chartView, number, sampleDashboard, measureColumns } from './dashboard.js';
 const $ = id => document.getElementById(id);
 const api = new LocalAPI();
+const visionPanel=visionView(api);$('workspace-view').append(visionPanel);
 let selection=null,selectionKey='';
 const preferences=()=>({priority:$('model-priority').value,allowDownload:$('allow-download').checked,...($('download-budget').value!==''?{maxDownloadGB:Number($('download-budget').value)}:{})});
 const requestKey=()=>JSON.stringify([$ ('task').value.trim(),dataset?.id,preferences()]);
@@ -113,7 +115,7 @@ async function importCSV() {
   if(file.size===0)throw new Error('This file is empty. Choose another file.');
   dataset=null;$('profile').hidden=true;$('profile').replaceChildren();
   const generation=epoch;busy=true;updateConnection();notify(`Importing ${file.name}…`);
-  try {const result=await api.upload(file);if(generation!==epoch)return;dataset=result;if(dataset.kind==='document'){$('profile').hidden=false;$('profile').replaceChildren(el('h3',{},dataset.name));}else renderProfile();$('notice').hidden=true;}
+  try {if(/\.(jpe?g|png)$/i.test(file.name)){await visionPanel.uploadPhoto(file);if(generation!==epoch)return;dataset=null;$('profile').hidden=true;$('notice').hidden=true;$('setup-workbench').hidden=true;$('workspace-heading').hidden=true;$('edit-setup').hidden=false;return;}const result=await api.upload(file);if(generation!==epoch)return;dataset=result;if(dataset.kind==='document'){$('profile').hidden=false;$('profile').replaceChildren(el('h3',{},dataset.name));}else renderProfile();$('notice').hidden=true;}
   finally{if(generation===epoch){busy=false;updateConnection();}}
 }
 async function createTask(event) {
@@ -178,6 +180,8 @@ async function loadTask(id) {
   $('dashboard').replaceChildren();$('dashboard').hidden=true;
   currentTask=task.id;selectActivityTask(currentTask);sample=false;
   hideAgentLoop();
+  if(task.pileResult||task.pileEstimate){const r=task.pileResult??task.pileEstimate,render=r.kind==='pile-estimate'?pileEstimateView:pileResultView;$('dashboard').hidden=false;$('dashboard').replaceChildren(render(r));api.get('/api/photos/'+r.photoId).then(photo=>{if(generation===epoch&&load===taskLoad&&currentTask===task.id)$('dashboard').replaceChildren(render(r,photo.preview));}).catch(()=>{if(generation===epoch&&load===taskLoad&&currentTask===task.id)$('dashboard').append(el('p',{role:'status'},'Image unavailable — boxes not shown. Reopen this saved task to retry; counts above remain saved.'));});return;}
+  if(task.visionResult){const r=task.visionResult;$('dashboard').hidden=false;$('dashboard').replaceChildren(el('h2',{id:'dashboard-title'},r.label),el('p',{},r.scope),el('p',{},r.scoreMeaning),el('p',{},'Saved local vision result · '+r.model.selected+' · '+r.model.revision));return;}
   if(task.textResult){renderDocument({...task,documentResult:{...task.textResult,name:'Answer',parts:[],model:task.model}});return;}
   if(task.documentResult){renderDocument(task);return;}
   if(task.dashboard)renderDashboard(task.dashboard,task.evaluation,'',task.fineTune,task.liveReport);else notify(task.error||`Saved task is ${task.status}.`);
@@ -205,7 +209,7 @@ function renderDashboard(data,evaluation=null,filterValue='',fineTune=null,liveR
   const tools=el('div',{class:'dashboard-tools'});
   const filter=data.filters?.[0];
   if(filter){const select=el('select',{id:'dashboard-filter','aria-label':`Filter by ${filter.column}`},el('option',{value:''},'All groups'),filter.values.map(v=>el('option',{value:v},v)));select.value=filterValue;
-    select.addEventListener('change',()=>run(async()=>{const value=select.value;if(sample){renderDashboard(sampleDashboard(value),null,value);return;}select.disabled=true;try {const updated=await api.post(`/api/tasks/${encodeURIComponent(currentTask)}/dashboard`,{filter:value?{column:filter.column,value}:null});renderDashboard(updated,evaluation,value,fineTune,liveReport);}finally{select.disabled=false;}}));tools.append(el('label',{for:'dashboard-filter'},filter.column),select);}
+    select.addEventListener('change',()=>run(async()=>{const value=select.value;if(sample){renderDashboard(sampleDashboard(value),null,value);return;}const generation=epoch,load=taskLoad,id=currentTask;select.disabled=true;try {const updated=await api.post(`/api/tasks/${encodeURIComponent(id)}/dashboard`,{filter:value?{column:filter.column,value}:null});if(generation!==epoch||load!==taskLoad||id!==currentTask)return;renderDashboard(updated,evaluation,value,fineTune,liveReport);}finally{if(generation===epoch&&load===taskLoad&&id===currentTask)select.disabled=false;}}));tools.append(el('label',{for:'dashboard-filter'},filter.column),select);}
   panel.append(el('div',{class:'dashboard-heading'},el('div',{},sample?el('span',{class:'badge'},'Fictional data'):null,el('h2',{id:'dashboard-title',tabindex:'-1'},sample?'Sample dashboard':data.source?.name||'Dashboard')),tools));
   if(focusResult)$('dashboard-title').focus({preventScroll:true});
   panel.append(el('div',{class:'kpis'},(data.kpis||[]).map(k=>el('div',{class:'kpi'},el('small',{},k.label),el('strong',{},number(k.value))))));

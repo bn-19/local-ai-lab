@@ -41,7 +41,7 @@ The measured public Bike Sharing and 541,909-row Online Retail checks are docume
 
 ## Boundaries
 
-Only narrow CSV operations are supported: count, sum, mean and sum of a product of two columns. No model-written SQL, Python or shell runs. Prompt/configuration optimization is distinct from the experimental MLX QLoRA reporting path. Candy reporting uses a public tabular preference dataset; it is not photo/brand recognition. Audio/image generation are future recipes.
+Only narrow CSV operations are supported: count, sum, mean and sum of a product of two columns. No model-written SQL, Python or shell runs. Prompt/configuration optimization is distinct from the experimental MLX QLoRA reporting path. Candy reporting uses a public tabular preference dataset; it is distinct from [experimental local photo vision](docs/CANDY_VISION.md). The photo workflow exposes detector boxes/unknowns and a separate whole-photo estimate path. Reliable pile counting and equivalence to hosted assistants are not established. Audio/image generation are future recipes.
 
 Short NASA Webb PDF summary/follow-up passed the documented checks. General long-PDF synthesis is not ready: the Landsat acceptance fails closed at the source-quote guard. Supabase is unconfigured in the measured environment; no live SQL/RLS acceptance is claimed. See [PDF acceptance](docs/PDF_SUMMARIZATION_ACCEPTANCE.md), [model selection](docs/MODEL_SELECTION.md), [shared catalog](docs/SHARED_MODEL_CATALOG.md), and [agent-loop/storage evidence](docs/AGENT_LOOP_AND_STORAGE.md).
 

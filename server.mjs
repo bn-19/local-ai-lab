@@ -1,3 +1,5 @@
+import {visionRoot,visionStatus,createVisionTask} from './lib/vision.mjs';
+import {imageType,visionAction} from './lib/vision-policy.mjs';
 import {recommendation,checkInstall} from './lib/model-selection.mjs';
 import {modelInventory} from './lib/model-inventory.mjs';
 import { extractDocument, documentLimit } from './lib/documents.mjs';
@@ -83,7 +85,7 @@ async function addWeb(dir, prefix) {
     if (e.code !== "ENOENT") throw e;
   }
 }
-await addWeb("web/dist", "/app/");
+await addWeb(new URL("./web/dist/",import.meta.url).pathname, "/app/");
 async function jsonBody(req) {
   let body = "";
   for await (const chunk of req) {
@@ -99,7 +101,7 @@ const server = createServer(async (req, res) => {
       "Cache-Control": "no-store",
       Vary: "Origin",
       "Content-Security-Policy":
-        "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'",
+        "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'",
     };
   const send = (status, data) => {
     res.writeHead(status, { ...headers, "Content-Type": "application/json" });
@@ -133,6 +135,34 @@ const server = createServer(async (req, res) => {
     )
       return send(401, { error: "Pair with the local token to connect" });
     try {
+      if(pathname==='/api/vision'&&req.method==='GET')return send(200,await visionStatus());
+      if(pathname==='/api/vision'&&req.method==='POST'){
+        const b=await jsonBody(req),action=visionAction(b.action);
+        const snapshot=await state();if(Object.entries(snapshot).some(([key,v])=>key.startsWith('job:')&&v?.kind==='vision'&&['queued','running'].includes(v.status)))throw Error('A vision job is already queued or running');
+        const task=['predict','detect','detect-friend','detect-vlm'].includes(action)?await createVisionTask(b.photoId,action):null;
+        const job=await enqueue('vision',task?.id??null,{action,photoId:task?.photoId});return send(202,{jobId:job.id,taskId:task?.id??null});
+      }
+      if(pathname==='/api/photos'&&req.method==='POST'){
+        const chunks=[];let size=0;for await(const chunk of req){size+=chunk.length;if(size>8*1024*1024)throw Error('Photo limit is 8 MB');chunks.push(chunk);}
+        const bytes=Buffer.concat(chunks),type=imageType(bytes),id=randomUUID();const directory=path.join(visionRoot,'photos');await mkdir(directory,{recursive:true,mode:0o700});
+        await writeFile(path.join(directory,id),bytes,{flag:'wx',mode:0o600});const photo={id,type,bytes:size,name:path.basename(decodeURIComponent(String(req.headers['x-filename']||'photo'))).slice(0,160)};await save('photo:'+id,photo);return send(201,photo);
+      }
+      const photoMatch=pathname.match(/^\/api\/photos\/([a-f0-9-]{36})$/);
+      if(photoMatch&&req.method==='GET'){
+        const photo=(await state())['photo:'+photoMatch[1]];if(!photo)throw Error('Photo not found');
+        const bytes=await readFile(path.join(visionRoot,'photos',photo.id));const type=imageType(bytes);
+        return send(200,{...photo,preview:'data:'+type+';base64,'+bytes.toString('base64')});
+      }
+      if(pathname==='/api/vision/samples'&&req.method==='GET'){
+        const manifest=JSON.parse(await readFile(path.join(visionRoot,'dataset.json'),'utf8'));
+        return send(200,manifest.rows.filter(r=>r.split==='final').filter((r,i,a)=>a.findIndex(x=>x.label===r.label)===i).map(r=>({id:r.file,label:r.product,subject:r.subject,split:r.split})));
+      }
+      const sampleMatch=pathname.match(/^\/api\/vision\/samples\/([a-f0-9]{64}\.jpg)$/);
+      if(sampleMatch&&req.method==='POST'){
+        const manifest=JSON.parse(await readFile(path.join(visionRoot,'dataset.json'),'utf8'));const row=manifest.rows.find(r=>r.file===sampleMatch[1]&&r.split==='final');if(!row)throw Error('Sample not found');
+        const bytes=await readFile(path.join(visionRoot,'dataset',row.file)),id=randomUUID(),type=imageType(bytes);await mkdir(path.join(visionRoot,'photos'),{recursive:true,mode:0o700});await writeFile(path.join(visionRoot,'photos',id),bytes,{mode:0o600,flag:'wx'});
+        const photo={id,type,name:row.product,bytes:bytes.length,source:'MIMEX held-out subject; this is an evaluated public sample, not a new unseen upload.'};await save('photo:'+id,photo);return send(201,{...photo,preview:'data:'+type+';base64,'+bytes.toString('base64')});
+      }
       if (pathname === "/api/health" && req.method === "GET")
         return send(200, await health());
       if(pathname==="/api/models/recommend"&&req.method==="POST")return send(200,await recommendation(await jsonBody(req)));

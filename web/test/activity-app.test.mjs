@@ -12,9 +12,12 @@ test('saved-task buttons scope Activity, clear old results and fence slow loads'
   // LinkeDOM intentionally omits the browser select.value setter.
   Object.defineProperty(window.HTMLSelectElement.prototype,'value',{configurable:true,get(){return this.querySelector('option[selected]')?.value||'';},set(value){for(const option of this.querySelectorAll('option')){if(option.value===value)option.setAttribute('selected','');else option.removeAttribute('selected');}}});
   const originalFetch=globalThis.fetch;
-  let resolveA,delayA=false;const posts=[];let generated=0;let delayState=false;const pendingState=[];
+  let resolveA,resolveFilter,delayA=false;const posts=[];let generated=0;let delayState=false;const pendingState=[];
   const tasks=[{id:'a',request:'Task A',status:'ready',documentResult:{name:'Document A',parts:[{answer:'Result A'}],characters:10,model:'m'}},{id:'b',request:'Task B',status:'failed'}];
+  const dashboard={kpis:[],charts:[],filters:[{column:'kind',values:['one']}],source:{name:'Analytics C'}};tasks.push({id:'c',request:'Task C',status:'ready',dashboard});
   globalThis.fetch=async (url,options)=>{
+    if(url.endsWith('/api/tasks/c/dashboard'))return new Promise(resolve=>{resolveFilter=()=>resolve(response({...dashboard,source:{name:'STALE FILTER RESULT'}}));});
+    if(url.endsWith('/api/tasks/c'))return response(tasks[2]);
     if(options?.method==='POST'){const body=JSON.parse(options.body||'{}');posts.push({url,body});if(url.endsWith('/api/models/recommend'))return response({selected:{id:'coder',digest:'abc'},runtime:{ready:true},machine:{},requirements:{kind:'code'},candidates:[],catalogSource:{kind:'built-in'},selectionBasis:'fixture'});if(url.endsWith('/api/tasks')||url.endsWith('/followup')){generated++;return response({taskId:'new-'+generated,jobId:'job-'+generated});}}
     if(url.includes('/api/jobs/job-'))return response({id:'job-'+generated,taskId:'new-'+generated,status:'ready'});
     if(url.includes('/api/tasks/new-'))return response({id:'new-'+generated,request:'Write a function',model:{id:'coder'},textResult:{answer:'function sum(a,b) { return a+b; }'}});
@@ -38,6 +41,7 @@ test('saved-task buttons scope Activity, clear old results and fence slow loads'
     click(buttons[1]);await flush();
     assert.equal(document.getElementById('dashboard').textContent,'');
     assert.match(document.getElementById('live-activity').textContent,/failed/);
+    click(buttons[2]);await flush();const filter=document.getElementById('dashboard-filter');filter.value='one';filter.dispatchEvent(new window.Event('change'));await flush();click(buttons[1]);await flush();resolveFilter();await flush();assert.equal(document.getElementById('dashboard').textContent,'','late analytics filter must not overwrite another saved task');
     delayA=true;click(buttons[0]);await flush();click(buttons[1]);await flush();resolveA();await flush();
     assert.equal(document.getElementById('dashboard').textContent,'');
     assert.match(document.getElementById('live-activity').textContent,/failed/);
