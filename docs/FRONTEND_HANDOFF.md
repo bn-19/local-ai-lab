@@ -74,3 +74,10 @@ Release verification: 14 frontend tests and static build on the isolated release
 Local frontend now calls POST /api/models/recommend before execution, displays actual recommendation/hardware/setup evidence, offers explicit model download and preferences, and sends selected modelId with new tasks. No-file text/code tasks are supported by the additive backend contract. Saved tasks retain their model through backend followups. Runtime/model-inventory hooks remain preserved. Document rendering prefers top-level answer with excerpt disclosure; the short Webb PDF summary/follow-up passed the documented acceptance; general long-PDF synthesis remains unsupported by the evidence. Monitor consumes actual persisted job.events when available, with System attribution rather than invented agent roles.
 
 Integrated verification: 31 backend tests, 25 frontend tests, syntax checks and the 13-file public build passed. Browser acceptance above applies only to its named earlier revision; no browser acceptance of this combined revision is implied.
+
+
+## Combined release browser check and reconnect fix
+
+Production 0.3.0.0 commit `6f1029d0640c3961a8214f9f621af7b7186f4350` passed hosted pairing, setup review without new jobs, model inventory, saved analytics/code/short-PDF results, task-scoped Activity and stable disclosures, 390px layout, and disconnect clearing in the explicitly approved replacement session. No network or console errors were recorded. The initial session failed pairing; the replacement used scoped loopback permission followed by reload. Both temporary profiles and all owned browser processes were cleaned up.
+
+Reconnect paired successfully, but finishing the saved-count refresh redirected an immediate Saved tasks selection back to Workspace. Version 0.3.1.0 moves the initial navigation before that refresh. A DOM regression failed before the fix and passed afterward, including reopening the saved result. All 25 frontend tests and the public build pass. The final patch has not been rerun in a real browser; earlier passed checks apply to the exact revision above.
