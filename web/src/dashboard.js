@@ -29,7 +29,7 @@ function svgNode(tag, attrs = {}, text = '') {
 }
 export function chartView(chart) {
   const points = (chart.points || []).filter(p => Number.isFinite(Number(p.value))).map(p => ({ label:String(p.label), value:Number(p.value) }));
-  const box = element('section', {class:'chart'}, element('h3',{},chart.title), element('p',{},chart.kind === 'line' ? 'Values by period' : 'Values by group'));
+  const box = element('section', {class:'chart'}, element('h3',{},chart.title));
   if (!points.length) return box.appendChild(element('p',{},'No values for this filter.')), box;
   const shown = points.slice(0,40);
   const width=500, height=245, left=62, right=18, top=15, bottom=40;
