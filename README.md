@@ -163,4 +163,4 @@ Built with Terse, Agent Relay, Supabase, Ollama, MLX, DuckDB and Vercel. The can
 
 ## Mac installer helpers
 
-The [Mac installation guide](installer/INSTALL.md) documents the source-bundled Apple Silicon installer. Installable ZIP assets will be listed on [GitHub Releases](https://github.com/bn-19/local-ai-lab/releases) when a verified installer release is published. Models are downloaded separately through explicit app setup; no weights or account credentials are bundled.
+The [Mac installation guide](installer/INSTALL.md) documents the source-bundled Apple Silicon installer. [Download the Mac installer ZIP](https://github.com/bn-19/local-ai-lab/releases/download/v0.5.0.0/Local-Lab-Mac-Installer.zip). This is an unsigned command-script helper, not a signed or notarized macOS app. Models are downloaded separately through explicit app setup; no weights or account credentials are bundled.

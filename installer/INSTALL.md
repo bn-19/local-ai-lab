@@ -1,5 +1,7 @@
 # Local Lab for Apple Silicon Macs
 
+This is an unsigned command-script helper, not a signed or notarized macOS app.
+
 Requires macOS 14 or later, an internet connection, and an Apple Silicon Mac running natively (not Rosetta). Git, Homebrew and administrator privileges are not required. The ZIP includes application source, not model weights or credentials.
 
 1. Download the Mac installer ZIP from the GitHub release that provides it. Extract the entire ZIP together; do not move individual command files.

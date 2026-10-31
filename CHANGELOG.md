@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.5.0.0] - 2026-10-31
+
+### Added
+- Install Local Lab on Apple Silicon Macs with a source-bundled helper, verified runtime downloads and locked dependencies.
+- Start and stop an owned foreground service group, with explicit cloud-setup consent and private logs.
+- Preserve existing installations and verify release source and assets with published checksums.
+
+
 ## [0.4.2.0] - 2026-10-31
 
 ### Changed
