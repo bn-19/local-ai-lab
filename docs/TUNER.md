@@ -48,3 +48,17 @@ API: `GET /api/tuning/recipes`, `POST /api/tuning {recipe, rounds}`, `GET /api/t
 Not yet verified anywhere: the proposer step through Relay and Qwen3, the full multi-round climb through the app, and restart-between-rounds. Those need the M5 with all three runtimes. The proposal schema is validated and clamped before use, so a bad proposal fails the run rather than running an unbounded config.
 
 Live-photo detection (boxing bars in a fresh photo) is not part of this branch. The recipe classifies crops from existing boxes.
+
+## Local vs GPT on the same 292 held-out crops (measured 2026-10-31, Intel MacBook)
+
+`scripts/compare-gpt.py` scores the tuned head and a GPT vision model on identical crops. GPT is zero-shot with the nine names in the prompt, image detail "low", no examples. A few-shot or high-detail GPT setup would likely score higher; this is the cheapest honest baseline, not the best possible one.
+
+| | local tuned head | gpt-5.4-mini | gpt-5.4 |
+|---|---|---|---|
+| accuracy | 99.7% | 74.0% | 83.2% |
+| all 292 crops | 0.01 s | 31 s | 42 s |
+| per crop | 0.02 ms | 831 ms | 1,126 ms |
+| tokens billed | 0 | 52,974 in / 1,995 out | 52,974 in / 1,638 out |
+| photo leaves laptop | no | yes | yes |
+
+GPT's main miss is Midnight Milky Way vs Milky Way (20 and 7 cases), then Snickers and Baby Ruth. The local head's single miss is one Milky Way read as Twix. The local score is on photos that match the training setup (same blanket, lighting and phone); on a fresh scene it would drop and GPT would hold steadier. The fair claim is "better on your own data, free and private", not "better than GPT in general". Requires `.local-lab/openai-key`; crops are sent to OpenAI only for this explicit run.
