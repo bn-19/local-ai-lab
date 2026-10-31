@@ -26,3 +26,11 @@ test('fetch uses the browser global receiver required by native Window.fetch',as
  const api=new LocalAPI({origin:'https://example.vercel.app',fetcher:async function(){assert.equal(this,globalThis);return response({machine:{},runtimes:{}});}});
  await api.pair('test-token');assert.equal(api.connected,true);api.disconnect();
 });
+
+test('document upload uses the local file endpoint and keeps content out of JSON',async()=>{
+ const calls=[];const api=new LocalAPI({origin:'http://127.0.0.1:4173',fetcher:async(url,options)=>{calls.push({url,options});return new Response(JSON.stringify({id:'doc',kind:'document'}),{headers:{'Content-Type':'application/json'}});}});
+ api.token='test';const file=new Blob(['private text']);Object.defineProperty(file,'name',{value:'notes.md'});
+ await api.upload(file);
+ assert.ok(calls[0].url.endsWith('/api/files'));assert.equal(calls[0].options.body,file);assert.equal(calls[0].options.headers['Content-Type'],'application/octet-stream');
+ api.disconnect();
+});

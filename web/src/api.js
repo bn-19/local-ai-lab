@@ -97,5 +97,5 @@ export class LocalAPI {
   }
   get(path) { return this.request(path); }
   post(path, data = {}) { return this.request(path, { method: 'POST', body: JSON.stringify(data), headers: { 'Content-Type': 'application/json' } }); }
-  upload(file) { return this.request('/api/datasets', { method: 'POST', body: file, headers: { 'Content-Type': 'text/csv', 'X-Filename': encodeURIComponent(file.name) }, timeout: 300000 }); }
+  upload(file) { const csv=/\.csv$/i.test(file.name); return this.request(csv?'/api/datasets':'/api/files', { method: 'POST', body: file, headers: { 'Content-Type': csv?'text/csv':'application/octet-stream', 'X-Filename': encodeURIComponent(file.name) }, timeout: 300000 }); }
 }

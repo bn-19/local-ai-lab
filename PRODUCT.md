@@ -10,7 +10,7 @@ Nontechnical people using a personal computer for day-to-day work. They describe
 
 ## Product Purpose
 
-Help people select, install, evaluate and tune open-source local models for their own tasks. The hackathon demonstrates two recipes: candy recognition and data analytics. General task support is the product direction; only implemented recipes may be advertised as supported. The starter is an interactive design prototype with no model execution.
+Help people select, install, evaluate and tune open-source local models for their own tasks. The working web app creates CSV dashboards with a local model and trusted calculations. Retail reporting, prompt evaluation and experimental adapter training are separate optional workflows. Candy recognition is planned. General task support is the product direction; only implemented recipes may be advertised as supported. Hosted pages pair explicitly with the local companion.
 
 ## Brand Personality
 

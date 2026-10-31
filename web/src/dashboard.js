@@ -60,3 +60,8 @@ export function chartView(chart) {
   box.append(element('details',{},element('summary',{},`View ${points.length} calculated values${points.length>40?' (chart shows first 40)':''}`),table));
   return box;
 }
+
+// DuckDB profile types, not column names, determine the initial measure choices.
+export function measureColumns(columns, includeText = false) {
+  return columns.filter(column => includeText || /^(?:U?TINYINT|U?SMALLINT|U?INTEGER|U?BIGINT|U?HUGEINT|FLOAT|REAL|DOUBLE|DECIMAL|NUMERIC)(?:\b|\()/i.test(column.type || '')).map(column => column.name);
+}

@@ -60,3 +60,11 @@ Consistent outline navigation icons, a 4px spacing rhythm, a dominant trend char
 `web/src/activity.js` renders persisted Planner/Evaluator handoffs and local job stages from `activity-state.js`. The API observer starts only after explicit pairing, refreshes every second during queued/running work and every four seconds while idle, and stops on disconnect or when no subscribers remain. Late responses after disconnect are discarded. Errors show an explicit retry state; no simulated agent progress is introduced. The activity module is independent of ongoing changes in `app.js`.
 
 Design guidance: Impeccable and [Unslop](https://github.com/heydamir/unslop) by Damir Sokolovsky (heydamir), [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/), adapted to the existing product palette and layout. This revision was checked with Node tests and the static build; the browser acceptance above applies to its stated earlier revision.
+
+## Monitor and Halloween design release
+
+Workspace-only Halloween switch uses a generated pumpkin icon, sliding toggle and reduced-motion-aware artwork transitions. Monitor replaces Activity with persisted job steps, elapsed time, history-based ETA and an explicitly partial cloud API-fee estimate. Removed the public Halloween demo shortcut. Setup collapses behind Edit setup after results; optional controls and workflows use disclosures. Document input UI needs the updated local companion; existing CSV endpoints remain unchanged.
+
+This frontend release intentionally excludes the in-progress model-inventory and agent-loop modules/hooks. They remain in the shared working copy with all uncommitted backend work. Do not reset that checkout to the release. Monitor timing/token estimates appear only when the companion supplies the corresponding telemetry; historical missing usage is not fabricated.
+
+Release verification: 14 frontend tests and static build on the isolated release snapshot. No new browser session. Artwork source notes are in web/assets/halloween/ATTRIBUTION.md; generated-icon provenance is in GENERATED.md.

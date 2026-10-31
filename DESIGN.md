@@ -6,7 +6,7 @@ A person sits at a kitchen table in daylight, opening a work file and wanting a 
 
 ## Layout
 
-A desktop app shell with a compact left navigation rail, a generous central task/setup workspace and a narrow right-hand setup explanation. Lead with a sentence-sized task input. Offer two selectable recipe rows: candy recognition and data analytics. Avoid an endless uniform card grid. Collapse navigation and stack panels on small screens.
+A compact navigation rail and a central analytics workspace. Lead with the question and selected CSV. Group required measure/comparison settings; disclose optional date, filter and negative-value settings. Results lead with metrics and a dominant trend chart. Retail reports and model improvement are separate disclosures below the result. Keep agent receipts in optional details, with concise device activity visible. Collapse navigation and stack panels on small screens. No explanatory rail, taglines or repeated page labels.
 
 ## Color tokens
 
@@ -18,7 +18,7 @@ System sans-serif with 14–16 px body text, 12 px labels and a 32 px main headi
 
 ## States and copy
 
-The first screen is a designed empty state. The persistent badge says Design preview. Primary action says Preview setup. Never display invented training metrics or claim files were processed. A real implementation adds downloading, queued, running, evaluating, ready, failed and cancelled states. Put agent details behind an optional activity view.
+Use actual connection and job states: downloading, queued, running, evaluating, ready, failed and cancelled. Only fictional sample data carries a sample badge. Never invent progress or model results. Keep native field labels and actionable errors. Use layout and disclosure to explain workflow boundaries; preserve data provenance and training limits as structured facts. Device activity is global, not implicitly scoped to the displayed dashboard. Stable control IDs, semantic current-navigation state and safe text rendering serve users, developers and agents.
 
 ## Motion and accessibility
 

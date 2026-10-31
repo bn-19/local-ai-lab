@@ -13,22 +13,24 @@
 <div class="shell">
   <aside class="rail">
     <a class="brand" href="./" aria-label="Local Lab home"><img src="./favicon.svg" width="34" height="34" alt=""><span>Local Lab</span></a>
-    <nav aria-label="Workspace"><button class="nav active" data-view="workspace"><svg class="nav-icon" viewBox="0 0 22 22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"><rect x="3" y="3" width="6" height="6" rx="1"/><rect x="13" y="3" width="6" height="6" rx="1"/><rect x="3" y="13" width="6" height="6" rx="1"/><rect x="13" y="13" width="6" height="6" rx="1"/></svg> Workspace</button><button class="nav" data-view="saved"><svg class="nav-icon" viewBox="0 0 22 22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"><path d="M5 3h12v17l-6-4-6 4z"/></svg> Saved tasks <span id="saved-count" class="count">0</span></button><button class="nav" data-view="activity"><svg class="nav-icon" viewBox="0 0 22 22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"><path d="M2 12h4l3-8 4 16 3-8h4"/></svg> Activity</button></nav>
+    <nav aria-label="Workspace"><button class="nav active" data-view="workspace" aria-current="page"><svg class="nav-icon" viewBox="0 0 22 22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"><rect x="3" y="3" width="6" height="6" rx="1"/><rect x="13" y="3" width="6" height="6" rx="1"/><rect x="3" y="13" width="6" height="6" rx="1"/><rect x="13" y="13" width="6" height="6" rx="1"/></svg> Workspace</button><button class="nav" data-view="saved"><svg class="nav-icon" viewBox="0 0 22 22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"><path d="M5 3h12v17l-6-4-6 4z"/></svg> Saved tasks <span id="saved-count" class="count">0</span></button><button class="nav" data-view="activity"><svg class="nav-icon" viewBox="0 0 22 22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"><path d="M2 12h4l3-8 4 16 3-8h4"/></svg> Monitor</button></nav>
     <div class="rail-bottom"><strong id="rail-device" hidden></strong><button class="text-button" id="connection-link">Connect your Mac <span aria-hidden="true">↗</span></button></div>
   </aside>
   <div class="body">
-    <header class="topbar"><strong id="page-name">Workspace</strong><span id="connection-badge" class="badge">Not connected</span></header>
+    <header class="topbar"><strong id="page-name" class="sr-only">Workspace</strong><span id="connection-badge" class="badge">Not connected</span></header>
     <main id="main" tabindex="-1">
       <div id="notice" role="status" aria-live="polite" hidden></div>
       <section id="workspace-view">
-        <div class="page-heading"><h1>New dashboard</h1><div id="readiness" hidden></div></div>
+        <div class="workspace-toolbar"><label class="theme-switch" for="halloween-mode"><img class="theme-pumpkin" src="./assets/halloween/pumpkin-icon-v2.png" width="28" height="28" alt="" aria-hidden="true"><span>Halloween mode</span><input id="halloween-mode" type="checkbox" role="switch"><span class="switch-track" aria-hidden="true"></span></label></div>
+        <div class="page-heading" id="workspace-heading"><h1>New task</h1><div id="readiness" hidden></div><div class="halloween-art" aria-hidden="true"><img src="./assets/halloween/ghost.png" width="72" height="72" alt="" loading="lazy"><img src="./assets/halloween/pumpkin.png" width="96" height="107" alt="" loading="lazy"></div></div>
         <section id="runtime-panel" class="runtime-panel" hidden></section>
-        <div class="workbench">
+        <button type="button" class="text-button" id="edit-setup" hidden>Edit setup</button>
+        <div class="workbench" id="setup-workbench">
           <section class="task-panel" aria-labelledby="task-heading">
             <form id="task-form">
-              <div class="section-heading"><h2 id="task-heading"><label for="task">What do you want to understand?</label></h2></div>
+              <div class="section-heading"><h2 id="task-heading"><label for="task">Question</label></h2></div>
               <textarea id="task" rows="3" maxlength="2000" placeholder="Compare monthly sales by product"></textarea>
-              <div class="file-zone"><label for="csv">CSV file</label><input id="csv" type="file" accept=".csv,text/csv"></div>
+              <div class="file-zone"><label for="csv">File</label><input id="csv" type="file"></div>
               <div id="profile" hidden></div>
               <div class="form-footer"><button type="button" class="text-button" id="sample-button">Open sample</button><button class="primary" type="submit" id="create-button">Connect your Mac ↗</button></div>
             </form>
@@ -39,7 +41,7 @@
         <section id="dashboard" hidden aria-labelledby="dashboard-title"></section>
       </section>
       <section id="saved-view" hidden><h1>Saved tasks</h1><div id="saved-list"></div></section>
-      <section id="activity-view" hidden><h1>Activity</h1><div id="activity-list"></div></section>
+      <section id="activity-view" hidden><h1>Monitor</h1><div id="monitor-panel"></div></section>
       <section id="connection-view" hidden>
         <h1>Connect your Mac</h1>
         <div class="connection-layout">

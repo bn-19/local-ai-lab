@@ -198,3 +198,86 @@ td:last-child, th:last-child { text-align: right; }
   .chart--comparison svg text { font-size: 13px; }
   .live-heading { align-items: flex-start; }
 }
+
+/* Secondary workflows are opt-in; their controls and evidence stay intact. */
+.workflow-disclosure { border-top: 1px solid var(--line); padding: 20px 0; }
+.workflow-disclosure > summary { font-weight: 550; }
+.workflow-disclosure .evaluation:first-of-type { border-top: 0; margin-top: 0; }
+.field-options { margin-top: 20px; }
+.field-options > summary { font-size: 13px; }
+.skip:not(:focus) { clip-path: inset(100%); }
+.nav { min-height: 44px; }
+.topbar { justify-content: flex-end; }
+
+.checkbox-field { display: flex; align-items: center; gap: 8px; margin-top: 16px; font-size: 13px; }
+.checkbox-field input { min-height: auto; }
+#edit-setup { margin-bottom: 24px; }
+@media(max-width:720px) {
+  .form-footer { flex-wrap: wrap; }
+  .form-footer .primary { flex-basis: 100%; }
+}
+
+/* Optional seasonal palette, with the same controls, layout and data semantics. */
+:root[data-theme="halloween"] {
+  color-scheme: dark;
+  --bg: oklch(.23 .025 305);
+  --surface: oklch(.28 .025 305);
+  --ink: oklch(.95 .015 75);
+  --muted: oklch(.76 .025 75);
+  --line: oklch(.43 .025 305);
+  --pine: oklch(.78 .15 60);
+  --soft: oklch(.34 .055 45);
+  --amber: oklch(.85 .12 75);
+  --amber-bg: oklch(.33 .045 60);
+  --error: oklch(.78 .12 25);
+}
+[data-theme="halloween"] .rail { background: oklch(.20 .025 305); }
+[data-theme="halloween"] button.primary:hover { background: oklch(.85 .13 65); }
+[data-theme="halloween"] textarea::placeholder { color: var(--muted); }
+[data-theme="halloween"] .chart-bar { fill: oklch(.66 .10 60); }
+[data-theme="halloween"] .chart-bar:first-of-type { fill: var(--pine); }
+[data-theme="halloween"] .brand img { filter: sepia(1) saturate(2) hue-rotate(340deg) brightness(1.4); }
+.topbar { gap: 24px; }
+.theme-switch { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; cursor: pointer; position: relative; color: var(--ink); white-space: nowrap; }
+.theme-switch svg { color: var(--pine); }
+.theme-switch input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.switch-track { width: 44px; height: 26px; border-radius: 16px; background: var(--line); border: 1px solid var(--muted); position: relative; }
+.switch-track::after { content: ''; position: absolute; width: 20px; height: 20px; top: 2px; left: 2px; border-radius: 50%; background: var(--ink); transition: transform 320ms cubic-bezier(.22,1,.36,1), background-color 180ms ease-out; }
+.theme-switch input:checked + .switch-track { background: var(--pine); border-color: var(--pine); }
+.theme-switch input:checked + .switch-track::after { transform: translateX(18px); background: var(--bg); }
+.theme-switch input:focus-visible + .switch-track { outline: 2px solid var(--pine); outline-offset: 4px; }
+@media(max-width:720px) { .topbar { height: auto; min-height: 64px; gap: 8px; flex-wrap: wrap; padding-block: 8px; justify-content: space-between; } }
+
+.document-answer p { white-space: pre-wrap; overflow-wrap: anywhere; }
+
+.monitor-steps { display:flex; flex-wrap:wrap; gap:24px; padding:24px 0; list-style:none; }
+.monitor-steps li { display:flex; align-items:center; gap:8px; font-size:13px; }
+.step-marker { width:16px; height:16px; border:1.5px solid var(--muted); border-radius:50%; flex:none; }
+[data-state="complete"] > .step-marker { border-color:var(--pine); background:var(--pine); }
+[data-state="active"] > .step-marker { border:2px solid var(--line); border-top-color:var(--pine); animation:monitor-work 1s linear infinite; }
+[data-state="stopped"] > .step-marker { border-color:var(--error); background:var(--error); border-radius:3px; }
+.monitor-metrics { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:24px; border-block:1px solid var(--line); padding:24px 0; margin-bottom:16px; }
+.monitor-metrics > div { display:grid; gap:8px; }
+.monitor-metrics span,.monitor-coverage { font-size:12px; color:var(--muted); }
+.monitor-metrics strong { font-size:20px; font-variant-numeric:tabular-nums; }
+#monitor-panel > details { margin-top:24px; }
+#monitor-panel details p { font-size:12px; color:var(--muted); }
+@keyframes monitor-work { to { transform:rotate(360deg); } }
+@media(prefers-reduced-motion:reduce) { [data-state="active"] > .step-marker { animation:none; border-style:dashed; } }
+@media(max-width:720px) { .monitor-metrics { grid-template-columns:1fr;gap:20px; } }
+
+.workspace-toolbar { display:flex; justify-content:flex-end; margin-bottom:16px; }
+.halloween-art { display:flex; align-items:center; gap:4px; pointer-events:none; visibility:hidden; opacity:0; transform:translateX(24px); transition:transform 360ms cubic-bezier(.22,1,.36,1), opacity 240ms ease-out, visibility 0s linear 360ms; }
+.halloween-art img { object-fit:contain; }
+.halloween-art img:first-child { transform:translateX(12px); transition:transform 420ms cubic-bezier(.22,1,.36,1); }
+[data-theme="halloween"] .halloween-art { visibility:visible; opacity:1; transform:translateX(0); transition-delay:0s; }
+[data-theme="halloween"] .halloween-art img:first-child { transform:translateX(0); transition-delay:50ms; }
+#workspace-heading { min-height:112px; overflow:hidden; }
+#workspace-heading .halloween-art { margin-left:auto; }
+@media(max-width:720px) { .halloween-art img:first-child { display:none; } .halloween-art img:last-child { width:72px;height:80px; } #workspace-heading { min-height:80px; } }
+
+@media(prefers-reduced-motion:reduce) {
+  .switch-track::after, .halloween-art, .halloween-art img:first-child { transition:none !important; }
+}
+
+.theme-pumpkin { display:block; width:28px; height:28px; object-fit:contain; flex:none; }
