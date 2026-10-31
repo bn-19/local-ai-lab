@@ -30,6 +30,7 @@ import {
   startAgentLoop,
   stopWorker,
 } from "./lib/jobs.mjs";
+import { startTuning, getTuning, cancelTuning, recipes } from "./lib/tuner.mjs";
 const port = Number(process.env.PORT ?? 4173),
   localOrigin = `http://127.0.0.1:${port}`;
 await mkdir(root, { recursive: true });
@@ -213,6 +214,26 @@ const server = createServer(async (req, res) => {
       }
       if (pathname === "/api/tasks" && req.method === "POST")
         return send(202, await createTask(await jsonBody(req)));
+      if (pathname === "/api/tuning/recipes" && req.method === "GET")
+        return send(
+          200,
+          Object.entries(recipes).map(([id, r]) => ({
+            id,
+            description: r.description,
+            knobs: r.knobs,
+          })),
+        );
+      if (pathname === "/api/tuning" && req.method === "POST")
+        return send(202, await startTuning(await jsonBody(req)));
+      const tune = pathname.match(/^\/api\/tuning\/([a-f0-9-]{36})(\/cancel)?$/);
+      if (tune) {
+        if (tune[2] && req.method === "POST")
+          return send(200, await cancelTuning(tune[1]));
+        if (req.method === "GET") {
+          const t = await getTuning(tune[1]);
+          return send(t ? 200 : 404, t ?? { error: "Tuning not found" });
+        }
+      }
       let match = pathname.match(/^\/api\/jobs\/([a-f0-9-]{36})(\/cancel)?$/);
       if (match) {
         if (match[2] && req.method === "POST") {
