@@ -1,10 +1,17 @@
-# 0.4.1.0
+# Changelog
+
+## [0.4.2.0] - 2026-10-31
+
+### Changed
+- Give reviewers a complete product overview, real production screenshots, architecture and reproducible setup instructions.
+- Clarify measured analytics and adaptation results, supported scope and verified shared-catalog behavior.
+
+## [0.4.1.0] - 2026-10-31
 
 - Lead the analytics workspace with data-derived insights and meaningful filtered comparisons.
 - Keep reporting-model training evidence collapsed and distinguish it from dashboard calculations.
 - Keep photo workflows behind the experimental query option.
 
-# Changelog
 
 ## [0.4.0.0] - 2026-10-31
 
