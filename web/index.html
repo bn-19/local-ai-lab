@@ -29,10 +29,11 @@
         <div class="workbench" id="setup-workbench">
           <section class="task-panel" aria-labelledby="task-heading">
             <form id="task-form">
-              <div class="section-heading"><h2 id="task-heading"><label for="task">Question</label></h2></div>
-              <textarea id="task" rows="3" maxlength="2000" placeholder="Compare monthly sales by product"></textarea>
-              <div class="file-zone"><label for="csv">File</label><input id="csv" type="file"></div>
+              <div class="section-heading"><h2 id="task-heading"><label for="task">What do you need?</label></h2></div>
+              <textarea id="task" rows="3" maxlength="2000" placeholder="Describe a task…"></textarea>
+              <div class="file-zone"><label for="csv">Attach file</label><input id="csv" type="file"></div>
               <div id="profile" hidden></div>
+              <details class="field-options"><summary>Model preferences</summary><div class="fields"><label for="model-priority">Priority<select id="model-priority"><option value="balanced">Balanced</option><option value="speed">Speed</option><option value="quality">Quality</option></select></label><label for="download-budget">Download limit · GB<input id="download-budget" type="number" min="0" step="0.1"></label></div><label class="checkbox-field"><input id="allow-download" type="checkbox" checked>Allow model downloads</label></details>
               <div class="form-footer"><button type="button" class="text-button" id="sample-button">Open sample</button><button class="primary" type="submit" id="create-button">Connect your Mac ↗</button></div>
             </form>
           </section>
