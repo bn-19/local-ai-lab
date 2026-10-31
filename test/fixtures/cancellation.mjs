@@ -57,3 +57,8 @@ records['task:coder']={id:'coder',model:{id:'qwen2.5-coder:1.5b'}};
 await assert.rejects(requestReport('coder',{request:'Most popular candies?'}),/another selected base/);
 const {fineTune}=await import('../../lib/jobs.mjs');
 await assert.rejects(fineTune('coder'),/unavailable/);
+records['task:photo-task']={id:'photo-task',kind:'vision',status:'queued'};
+records['job:photo-pending']={id:'photo-pending',taskId:'photo-task',kind:'vision',status:'queued'};
+await cancelJob('photo-pending');
+assert.equal(records['task:photo-task'].status,'cancelled');
+assert.equal(records['job:photo-pending'].status,'cancelled');

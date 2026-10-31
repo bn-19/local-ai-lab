@@ -19,7 +19,7 @@ Original: [FiveThirtyEight candy-power-ranking](https://github.com/fivethirtyeig
 
 CSV SHA-256: `46c17cdb8c0212bc3e0cee2a9617a75d1ce642cd1559c332b1d9a2c4ed19b8cb`. GitHub's commit lookup was rate-limited, so provenance pins the downloaded content hash rather than claiming a commit revision. Original file and attribution are in ignored `.local-lab/sources/candy/`.
 
-The supplied rdrr documentation agrees with the original dataset definitions. Baselight now redirects to a shutdown announcement; the supplied BIMM143 page was inaccessible through the web tool. Neither is required at demo runtime. The user explicitly chose analytics only, so no Roboflow vision model or candy-photo recognition is claimed.
+The supplied rdrr documentation agrees with the original dataset definitions. Baselight now redirects to a shutdown announcement; the supplied BIMM143 page was inaccessible through the web tool. Neither is required at demo runtime. Candy-ranking analytics remains a separate working demo. The later candy-photo scope uses local experimental detection and a locally regenerated nine-brand crop classifier; reliable pile counts have not passed acceptance. No Roboflow model is used. See PILE_BASELINE_CHECKPOINT.md for measured vision limitations.
 
 ## Model and verification
 
