@@ -4,7 +4,7 @@
 
 ### Added
 - Install Local Lab on Apple Silicon Macs with a source-bundled helper, verified runtime downloads and locked dependencies.
-- Start and stop an owned foreground service group, with explicit cloud-setup consent and private logs.
+- Start and stop an owned foreground service group, with explicit cloud-setup consent and private logs. Wait for the local UI before offering to open it; retire completed setup groups and retain recovery details if cleanup fails.
 - Preserve existing installations and verify release source and assets with published checksums.
 
 
