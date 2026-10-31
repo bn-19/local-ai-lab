@@ -299,3 +299,47 @@ td:last-child, th:last-child { text-align: right; }
 @media(max-width:1100px) { .task-activity-layout { grid-template-columns:minmax(0,1fr); } }
 
 .pile-overlay{position:relative;max-width:640px}.pile-photo{display:block;width:100%;max-width:640px;height:auto}.pile-box{position:absolute;box-sizing:border-box;border:2px solid #00b879;pointer-events:none}.pile-box.uncertain{border-style:dashed;border-color:#f5a524}.pile-box span{background:#00b879;color:#111;font-size:12px;padding:1px 3px}.pile-box.uncertain span{background:#f5a524}
+
+/* Measured reporting results, kept distinct from dashboard calculations. */
+.training-result { margin: 0 0 28px; padding: 24px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+.training-result-heading { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 22px; }
+.training-result-heading h3 { margin: 0; font-size: 18px; }
+.training-comparison { display: flex; gap: 40px; max-width: 620px; }
+.training-score { flex: 1; display: grid; gap: 8px; min-width: 0; }
+.training-score > span { color: var(--muted); font-size: 13px; }
+.training-score strong { font-size: 28px; font-weight: 600; font-variant-numeric: tabular-nums; letter-spacing: -.6px; }
+.training-score meter { width: 100%; height: 10px; accent-color: var(--pine); }
+.training-score meter::-webkit-meter-bar { background: var(--soft); border: none; }
+.training-score meter::-webkit-meter-optimum-value { background: var(--pine); }
+.training-score meter::-moz-meter-bar { background: var(--pine); }
+.training-facts { display: flex; flex-wrap: wrap; gap: 8px 24px; margin: 18px 0; color: var(--muted); font-size: 12px; }
+.training-result details { border-top: 1px solid var(--line); padding-top: 12px; font-size: 12px; }
+.training-result pre { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 320px; overflow: auto; }
+.agent-loop-disclosure { padding: 14px 0; background: transparent; border: 0; border-bottom: 1px solid var(--line); }
+.agent-loop-disclosure > summary { color: var(--pine); font-weight: 550; cursor: pointer; }
+.agent-loop-disclosure[open] > summary { margin-bottom: 16px; }
+#dashboard .dashboard-heading { margin-top: 24px; }
+#dashboard .workflow-disclosure > summary { font-size: 16px; }
+@media(max-width:640px) { .training-result { padding: 18px; } .training-result-heading { align-items: flex-start; flex-direction: column; gap: 8px; } .training-comparison { gap: 20px; } .training-score strong { font-size: 24px; } }
+
+.data-insights { margin: 0 0 32px; padding: 24px 0; border-bottom: 1px solid var(--line); }
+.data-insights h3 { font-size: 18px; margin-bottom: 14px; }
+.data-insights ul { display: grid; gap: 10px; padding-left: 20px; margin: 0 0 16px; max-width: 72ch; }
+.data-insights li::marker { color: var(--pine); }
+.data-insights details { font-size: 12px; color: var(--muted); }
+[data-workflow=training-results] .training-result { border: 0; padding: 20px 0 0; margin-bottom: 0; }
+/* Friend workspace presentation, backed by this app's recorded states. */
+.workspace-toolbar { min-height: 52px; padding-bottom: 12px; border-bottom: 1px solid var(--line); }
+.theme-switch { padding: 2px 12px; border: 1px solid var(--line); border-radius: 24px; background: var(--surface); }
+.data-insights { padding: 22px 24px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+.charts { gap: 20px; }
+.charts > .chart { padding: 20px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+.live-activity { background: var(--surface); border-radius: 12px; }
+.activity-current { font-size: 13px; display: flex; gap: 8px; align-items: baseline; }
+.activity-current::before { content: ''; width: 8px; height: 8px; border-radius: 50%; flex: none; background: var(--muted); }
+.activity-current[data-state=active]::before,.activity-current[data-state=complete]::before { background: var(--pine); }
+.activity-current[data-state=failed]::before { background: var(--error); }
+.activity-current[data-state=queued]::before { background: var(--amber); }
+.activity-timeline li { border: 0; margin-bottom: 8px; padding: 10px 12px; border-radius: 10px; background: var(--bg); }
+.activity-timeline summary { font-size: 12px; line-height: 1.6; }
+@media(max-width:640px) { .data-insights,.charts > .chart { padding: 16px; } }

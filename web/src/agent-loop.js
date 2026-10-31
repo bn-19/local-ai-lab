@@ -8,7 +8,7 @@ function render(){
  const next=JSON.stringify({loop,job:job?.id});if(next===signature)return;signature=next;
  const openDetails=[...panel.querySelectorAll('details')].map(d=>d.open);
  panel.hidden=false;
- panel.replaceChildren(el('h2',{},'Candy improvement team'),el('p',{},'Planner proposes an audit. Evaluator measures raw model errors. Trainer chooses a bounded training budget. A fresh test controls promotion. The roles use separate local prompts and share one model/device; Handoffs use Relay with an explicit local fallback.'),el('button',{class:'primary',type:'button',disabled:!!job,onClick:async()=>{try{const r=await api.post(`/api/tasks/${encodeURIComponent(taskId)}/agentloop`,{});await start(r.jobId);}catch(e){panel.append(el('p',{role:'alert'},e.message));}}},job?'Agent loop running':'Run agent improvement loop'));
+ panel.replaceChildren(el('summary',{},'Improve reporting model'),el('p',{},'Planner, evaluator and trainer use one local model and device. Recorded handoffs and measured results appear below.'),el('button',{class:'primary',type:'button',disabled:!!job,onClick:async()=>{try{const r=await api.post(`/api/tasks/${encodeURIComponent(taskId)}/agentloop`,{});await start(r.jobId);}catch(e){panel.append(el('p',{role:'alert'},e.message));}}},job?'Agent loop running':'Run agent improvement loop'));
  if(!loop)return;
  panel.append(el('p',{role:'status'},`${loop.status} · ${loop.stage||'Starting'}${loop.selected?' · Selected: '+loop.selected:''}`));
  for(const role of ['Planner','Evaluator','Trainer']){
@@ -27,7 +27,7 @@ function render(){
 }
 export function showAgentLoop(id,client,onStart){
  taskId=id;api=client;start=onStart;signature='';
- if(!panel){panel=el('section',{class:'runtime-panel',id:'agent-loop-panel'});document.getElementById('job-panel').after(panel);}
+ if(!panel){panel=el('details',{class:'runtime-panel agent-loop-disclosure',id:'agent-loop-panel'});document.getElementById('job-panel').after(panel);}
  render();
 }
 export function hideAgentLoop(){taskId=null;signature='';if(panel){panel.hidden=true;panel.replaceChildren();}}
