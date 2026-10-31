@@ -29,7 +29,12 @@ Knobs: epochs 1–40, lr 1e-4–2e-2, weight_decay 0–1e-2, hidden 0–512, nor
 
 Requirements beyond the main app: Python 3 with `torch`, `torchvision`, `pillow` on PATH as `python3` (or set `LOCAL_LAB_PYTHON`). The first run downloads ResNet-18 weights (about 45 MB) from PyTorch.
 
+Data: [Candy Brands for Object Detection](https://www.kaggle.com/datasets/ruopengan/candy-brands-for-object-detection?resource=download) on Kaggle (529 phone photos, VIA box annotations, about 2.9 GB raw). `recipes/candy-vision/shrink.py` resizes it to 1024 px wide and merges the boxes into one `annotations.csv` (about 127 MB). Or copy the already-shrunk `candies-small/` folder from Lamitr.
+
 ```sh
+# from the raw Kaggle download:
+python3 -I recipes/candy-vision/shrink.py <kaggle-unzipped-dir> .local-lab/sources/candy-vision
+# or from the pre-shrunk folder:
 mkdir -p .local-lab/sources/candy-vision
 cp -R <candies-small>/images <candies-small>/annotations.csv .local-lab/sources/candy-vision/
 # with runtime:actors, runtime:ollama and dev running, Relay identities set up:
