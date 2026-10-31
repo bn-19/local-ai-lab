@@ -1,6 +1,6 @@
 import http from 'node:http';
 import test from 'node:test';import assert from 'node:assert/strict';import {mkdtemp,writeFile,readFile,mkdir,cp,rm,stat} from 'node:fs/promises';import path from 'node:path';import os from 'node:os';import {execFileSync,spawn} from 'node:child_process';import net from 'node:net';import {createHash} from 'node:crypto';
-import {assertPortsFree,ownedProcess,stopOwned,ensureActorSecret,waitForUI} from '../processes.mjs';
+import {assertPortsFree,ownedProcess,stopOwned,ensureActorSecret,waitForUI,retireOwned} from '../processes.mjs';
 const repo=path.resolve(import.meta.dirname,'../..'),common=path.join(repo,'installer/macos/common.sh');
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));async function until(fn){for(let i=0;i<150;i++){try{const v=await fn();if(v)return v;}catch{}await sleep(40);}throw Error('Timed out');}
 async function temp(t){const d=await mkdtemp(path.join(os.tmpdir(),'local lab installer test '));t.after(()=>rm(d,{recursive:true,force:true}));return d;}
@@ -22,3 +22,15 @@ async function httpFixture(t,handler){const server=http.createServer(handler);aw
 test('UI readiness waits through non-200 responses until the UI is ready',async t=>{let requests=0;const url=await httpFixture(t,(req,res)=>{assert.equal(req.url,'/app/');res.writeHead(++requests<3?503:200);res.end('fixture');});assert.equal(await waitForUI(url,{timeoutMs:1000,intervalMs:10}),true);assert.equal(requests,3);});
 test('UI readiness times out even when the connection never responds',async t=>{const url=await httpFixture(t,()=>{});const started=performance.now();await assert.rejects(waitForUI(url,{timeoutMs:120,intervalMs:10}),/startup deadline/);assert(performance.now()-started<1500);});
 test('UI readiness cancellation interrupts an outstanding request',async t=>{const controller=new AbortController();const url=await httpFixture(t,()=>controller.abort());const started=performance.now();assert.equal(await waitForUI(url,{signal:controller.signal,timeoutMs:10000}),false);assert(performance.now()-started<1000);});
+
+test('retired completed setup records cannot signal a later reused group ID',async()=>{
+ const completed=ownedProcess(process.execPath,['-e','process.exit(0)'],{stdio:'ignore'});await completed.done;await retireOwned(completed);assert.equal(completed.pid,undefined);
+ const unrelated=ownedProcess(process.execPath,['-e','setInterval(()=>{},1000)'],{stdio:'ignore'});
+ try{completed.pid=unrelated.pid;assert.deepEqual(await stopOwned([completed]),[]);assert.doesNotThrow(()=>process.kill(unrelated.pid,0));}finally{await stopOwned([unrelated]);}
+});
+test('retirement cleans orphaned owned descendants before forgetting their group',async t=>{
+ const d=await temp(t),pidFile=path.join(d,'descendant-pid');
+ const code="const {spawn}=require('node:child_process');const c=spawn(process.execPath,['-e','setInterval(()=>{},1000)'],{stdio:'ignore'});require('node:fs').writeFileSync(process.argv[1],String(c.pid));c.unref();";
+ const parent=ownedProcess(process.execPath,['-e',code,pidFile],{stdio:'ignore'});
+ try{await parent.done;const pid=Number(await readFile(pidFile,'utf8'));assert.doesNotThrow(()=>process.kill(pid,0));await retireOwned(parent);assert.equal(parent.retired,true);assert.equal(parent.pid,undefined);assert.throws(()=>process.kill(pid,0),{code:'ESRCH'});}finally{await stopOwned([parent]);}
+});

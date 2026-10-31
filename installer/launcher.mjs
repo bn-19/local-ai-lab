@@ -1,6 +1,6 @@
 import {readFile,writeFile,mkdir,unlink,lstat,open,chmod} from 'node:fs/promises';
 import path from 'node:path';import os from 'node:os';import net from 'node:net';import {randomBytes} from 'node:crypto';import {createInterface} from 'node:readline/promises';import {spawn} from 'node:child_process';
-import {assertPortsFree,ownedProcess,stopOwned,ensureActorSecret,waitForUI} from './processes.mjs';
+import {assertPortsFree,ownedProcess,stopOwned,ensureActorSecret,waitForUI,retireOwned} from './processes.mjs';
 const root=process.cwd(),privateDir=path.join(root,'.local-lab/launcher'),stateFile=path.join(privateDir,'session.json');
 async function stop(){let saved;try{saved=JSON.parse(await readFile(stateFile,'utf8'));}catch{throw Error('No launcher session found. Nothing stopped.');}await new Promise((resolve,reject)=>{const socket=net.createConnection(saved.socket);socket.setTimeout(15000);socket.once('connect',()=>socket.write(JSON.stringify({action:'stop',token:saved.token})+'\n'));socket.once('data',data=>{socket.end();String(data).trim()==='stopped'?resolve():reject(Error('Cleanup did not succeed; inspect the launcher Terminal.'));});socket.once('timeout',()=>{socket.destroy();reject(Error('Launcher did not respond; no process was killed by PID.'));});socket.once('error',()=>reject(Error('Launcher session is stale or unavailable. No process was killed. Inspect the original Terminal.')));});console.log('Owned Local Lab services stopped.');}
 let prompt;
@@ -24,7 +24,7 @@ async function start(){
   let relay;try{relay=JSON.parse(await readFile('.local-lab/relay.json','utf8'));}catch(e){if(e.code!=='ENOENT')throw e;}
   if(!relay?.workspaceKey||!['planner','evaluator','trainer'].every(k=>relay[k]?.token)){
    if(!await question('Create or complete your OWN Agent Relay cloud workspace and three identities? Type yes to authorize: '))throw Error('Setup declined. Run Start.command when ready.');
-   const r=await logged('relay-setup',['scripts/setup-relay.mjs']);await r.done;if(stopping)return;if(r.error||r.child.exitCode!==0)throw Error('Relay setup failed; see private relay-setup.log. Saved setup is preserved for retry.');
+   const r=await logged('relay-setup',['scripts/setup-relay.mjs']);await r.done;await retireOwned(r);if(stopping)return;if(r.error||r.child.exitCode!==0)throw Error('Relay setup failed; see private relay-setup.log. Saved setup is preserved for retry.');
   }
   await assertPortsFree([4173,11435,7100]);
   await ensureActorSecret(path.join(root,'.local-lab/actor-secret'));
