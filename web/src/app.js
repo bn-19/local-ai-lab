@@ -186,7 +186,7 @@ async function watchEvaluation(taskId,initialJobId) {
 // Open a tuning run in the workspace: the setup form folds away and the tuner panel takes over.
 function openTuning(id) {
   taskLoad++;hideAgentLoop();currentTask=null;currentTuning=id;sample=false;
-  $('dashboard').replaceChildren();$('dashboard').hidden=true;$('job-panel').hidden=true;
+  $('dashboard').replaceChildren();$('dashboard').hidden=true;$('job-panel').hidden=true;$('runtime-panel').hidden=true;
   $('setup-workbench').hidden=true;$('workspace-heading').hidden=true;$('edit-setup').hidden=false;
   selectActivityTask(id);
   showTuning(id,api,{onChange:()=>updateWorkButtons()});
@@ -326,7 +326,7 @@ async function renderSaved() {
 async function renderActivity() { /* Live monitor is owned by the activity observer. */ }
 document.querySelectorAll('[data-view]').forEach(button=>button.addEventListener('click',()=>{view(button.dataset.view);run(async()=>{if(button.dataset.view==='saved')await renderSaved();if(button.dataset.view==='activity')await renderActivity();});}));
 $('connection-link').addEventListener('click',()=>view('connection'));
-$('edit-setup').addEventListener('click',()=>{$('setup-workbench').hidden=false;$('workspace-heading').hidden=false;$('edit-setup').hidden=true;$('task').focus();});
+$('edit-setup').addEventListener('click',()=>{$('setup-workbench').hidden=false;$('workspace-heading').hidden=false;$('edit-setup').hidden=true;renderRuntime();$('task').focus();});
 for(const id of ['task','model-priority','allow-download','download-budget'])$(id).addEventListener('input',()=>{selection=null;selectionKey='';renderRuntime();updateConnection();});
 $('task-form').addEventListener('submit',event=>run(()=>createTask(event)));
 $('csv').addEventListener('change',()=>run(importCSV));

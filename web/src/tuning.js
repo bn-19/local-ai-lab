@@ -22,15 +22,18 @@ function feed(t){
     const top=r.development_confusions?.[0];
     items.push({role:'Judge',promoted:r.promoted,text:`Held-out ${pct(r.heldout_accuracy)} · ${r.promoted?'promoted to best':'kept the previous best'}${top?` · most confused: ${pretty(top.true)} read as ${pretty(top.predicted)} (${top.count})`:''}`});
   }
-  if(t.status==='running')items.push({role:/^(Proposer|Waiting|Queued)/.test(t.stage||'')?'Proposer':'Executor',text:t.stage||'Working',pending:true});
+  const proposerStage=/^(Proposer|Waiting|Queued)/.test(t.stage||'');
+  if(t.status==='running')items.push({role:proposerStage?'Proposer':'Executor',text:t.stage||'Working',pending:true});
+  if(t.status==='failed')items.push({role:(t.rounds||[]).length?'Proposer':'Executor',text:`Failed: ${t.error||'no error recorded'}`,error:true});
+  if(t.status==='cancelled')items.push({role:'Judge',text:'Run cancelled. The best round so far is kept.',error:true});
   return items;
 }
 function benchmarkTable(recipe){
   const b=recipe?.benchmark;if(!b)return null;
   const rows=[['Accuracy',c=>pct(c.accuracy)],['Per crop',c=>c.perCropMs<1?c.perCropMs+' ms':Math.round(c.perCropMs)+' ms'],['Cost per 1,000 crops',c=>'$'+c.usdPer1000.toFixed(2)],['Photo leaves laptop',c=>c.leavesLaptop?'yes':'no']];
-  return el('section',{class:'evaluation'},el('h3',{},'Same held-out crops, local versus GPT'),
-    el('table',{class:'compare'},el('thead',{},el('tr',{},el('th',{},''),...b.columns.map(c=>el('th',{},c.label)))),el('tbody',{},...rows.map(([label,fn])=>el('tr',{},el('td',{},label),...b.columns.map(c=>el('td',{},fn(c))))))),
-    el('p',{class:'muted'},`Measured ${b.measuredAt} on ${b.crops} held-out crops. ${b.note}`));
+  return el('section',{class:'evaluation'},el('h3',{},'What a tuned head buys you: same held-out crops, local versus GPT'),
+    el('table',{class:'compare'},el('thead',{},el('tr',{},el('th',{},''),...b.columns.map(c=>el('th',{},c.id==='local'?c.label+' (reference run)':c.label)))),el('tbody',{},...rows.map(([label,fn])=>el('tr',{},el('td',{},label),...b.columns.map(c=>el('td',{},fn(c))))))),
+    el('p',{class:'muted'},`Reference run measured ${b.measuredAt} on ${b.crops} held-out crops with the recipe's strongest config, not this run's numbers. ${b.note}`));
 }
 function render(){
   if(!panel||!tuningId)return;
@@ -49,8 +52,8 @@ function render(){
   if(first)panel.append(el('div',{class:'climb'},el('div',{},el('small',{},'Baseline held-out'),el('strong',{},pct(first.heldout_accuracy))),el('span',{class:'arrow','aria-hidden':'true'},'→'),el('div',{},el('small',{},`Best held-out · round ${best?.round??'—'}`),el('strong',{},pct(best?.heldout_accuracy)))));
   if(t.rounds?.length)panel.append(el('table',{class:'rounds'},el('thead',{},el('tr',{},...['Round','Change','Development','Held-out','Time','Judge'].map(h=>el('th',{},h)))),
     el('tbody',{},...t.rounds.map(r=>el('tr',{},el('td',{},String(r.round)),el('td',{},r.change),el('td',{},pct(r.development_accuracy)),el('td',{},pct(r.heldout_accuracy)),el('td',{},secs(r.elapsedMs)),el('td',{},r.promoted?el('span',{class:'promote'},'Promoted'):'kept best'))))));
-  panel.append(el('h3',{},'Agents'),el('ol',{class:'tune-feed','aria-label':'Tuning hand-offs'},...feed(t).map(item=>el('li',{class:'bubble','data-role':item.role,'data-pending':item.pending?'':null},el('strong',{},item.role,item.via?el('span',{class:'via'},item.via):null),item.text,item.promoted?el('span',{class:'promote'},'Promoted'):null))));
-  if(t.error)panel.append(el('p',{role:'alert'},t.error));
+  panel.append(el('h3',{},'Agents'),el('ol',{class:'tune-feed','aria-label':'Tuning hand-offs'},...feed(t).map(item=>el('li',{class:'bubble','data-role':item.role,'data-pending':item.pending?'':null,'data-error':item.error?'':null,role:item.error?'alert':null},el('strong',{},item.role,item.via?el('span',{class:'via'},item.via):null),item.text,item.promoted?el('span',{class:'promote'},'Promoted'):null))));
+  if(t.status==='failed')panel.append(el('p',{class:'muted'},'The rounds above are saved. Fix the cause and start a new run; a kill mid-run would resume, but a failed proposer step does not retry itself.'));
   if(t.status==='complete'&&best?.checkpoint)panel.append(el('p',{class:'muted'},`Best checkpoint saved locally at ${best.checkpoint}`));
   const table=benchmarkTable((recipes||[]).find(r=>r.id===t.recipe));
   if(table&&best)panel.append(table);

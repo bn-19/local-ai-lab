@@ -291,6 +291,8 @@ td:last-child, th:last-child { text-align: right; }
 .bubble[data-role="Proposer"] { background:var(--soft); margin-left:48px; border-color: transparent; }
 .bubble[data-role="Judge"] { border-color:var(--pine); }
 .bubble[data-pending] { opacity:.7; font-style:italic; }
+.bubble[data-error] { background: var(--amber-bg); border-color: transparent; color: var(--error); }
+.bubble[data-error] strong { color: var(--error); }
 @media (max-width: 720px) { .bubble[data-role="Proposer"] { margin-left:16px; } .climb strong { font-size:28px; } }
 .halloween-art { display:flex; align-items:center; gap:4px; pointer-events:none; visibility:hidden; opacity:0; transform:translateX(24px); transition:transform 360ms cubic-bezier(.22,1,.36,1), opacity 240ms ease-out, visibility 0s linear 360ms; }
 .halloween-art img { object-fit:contain; }
