@@ -88,7 +88,7 @@ function renderRelay(state){
   setStatus(relayStatusLine,view.ready?'ready':'queued',view.ready?`Relay connected as ${view.agents.join(', ')||'no agents'}. ${view.counts.sent} sent, ${view.counts.received} received, ${view.counts.failed} failed.`:`Relay not connected. ${view.error?view.error.replace(/\.?$/,'. '):''}${view.messages.length} message${view.messages.length===1?'':'s'} recorded.`);
   if(!view.messages.length){relayFeed.replaceChildren(el('li',{class:'empty'},el('strong',{},'No Relay messages yet'),'Start a task or a tuning run in Workspace. The first Planner request to the Evaluator shows up here with its message id.'));return;}
   relayFeed.replaceChildren(...view.messages.slice(-40).map(m=>el('li',{class:'bubble','data-from':m.from,'data-error':['failed','not sent','no receipt'].includes(m.delivery)?'':null},
-    el('span',{class:'who'},el('span',{class:'chip','aria-hidden':'true'},m.from[0]),m.from,el('span',{class:'to'},`to ${m.to}`),el('span',{class:'via'},`${m.kind}${m.phase?', '+m.phase:''}${m.at!==null?', '+when(m.at):''}${m.seeded?', seeded sample':''}`)),
+    el('span',{class:'who'},el('span',{class:'chip','aria-hidden':'true'},m.from[0]),m.from,el('span',{class:'to'},`to ${m.to}`),el('span',{class:'via'},`${m.kind}${m.phase?', '+m.phase:''}${m.at!==null?', '+when(m.at):''}`)),
     el('span',{class:'say'},m.crosses.length?m.crosses.join(', '):(m.error||'')),
     el('small',{class:'receipt'},m.error&&m.crosses.length?`Not delivered. ${m.error}`:`${m.messageId?'Message '+m.messageId.slice(0,8):'No message id'}, ${m.delivery}${m.receiptId?', receipt '+m.receiptId.slice(0,8):''}`))));
 }

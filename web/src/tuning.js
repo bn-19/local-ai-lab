@@ -17,7 +17,7 @@ function current(){
 function feed(t){
   const items=[];
   for(const r of t.rounds||[]){
-    if(r.round>0)items.push({role:'Proposer',text:`${r.change}. ${r.rationale||''}`.trim(),via:'Agent Relay · Planner → Evaluator'});
+    if(r.round>0)items.push({role:'Proposer',text:`${r.change}. ${r.rationale||''}`.trim(),via:t.proposer==='scripted'?'scripted plan, no Relay on this machine':'Agent Relay, Planner to Evaluator'});
     items.push({role:'Executor',text:`Trained round ${r.round} in ${secs(r.elapsedMs)} · development accuracy ${pct(r.development_accuracy)} · train ${pct(r.train_accuracy)}`});
     const top=r.development_confusions?.[0];
     items.push({role:'Judge',promoted:r.promoted,text:`Held-out ${pct(r.heldout_accuracy)} · ${r.promoted?'promoted to best':'kept the previous best'}${top?` · most confused: ${pretty(top.true)} read as ${pretty(top.predicted)} (${top.count})`:''}`});
@@ -47,7 +47,7 @@ function render(){
   const head=el('div',{class:'runtime-row'},el('div',{},el('h2',{},`Autonomous tuner · ${t.recipe}`),el('p',{class:'status',role:'status','data-state':t.status},el('span',{class:'dot','aria-hidden':'true'}),statusText)),
     el('div',{class:'dashboard-tools'},running?el('button',{type:'button',class:'secondary',onClick:async()=>{try{await api.post(`/api/tuning/${encodeURIComponent(t.id)}/cancel`);}catch(e){panel.append(el('p',{role:'alert'},e.message));}}},'Cancel tuning'):null));
   panel.replaceChildren(head);
-  if(t.seeded)panel.append(el('p',{class:'status','data-state':'queued'},el('span',{class:'dot','aria-hidden':'true'}),'Seeded sample records, written by scripts/seed-demo.mjs. Not a live run on this Mac.'));
+  if(t.proposer==='scripted')panel.append(el('p',{class:'status','data-state':'queued'},el('span',{class:'dot','aria-hidden':'true'}),'Training, judging and jobs are live on this Mac. The proposer is following a scripted plan because Relay is not set up here; with Relay and Ollama the local model proposes.'));
   if(t.request)panel.append(el('p',{},el('strong',{},'Task: '),t.request));
   panel.append(el('p',{class:'muted'},`${t.backbone||'Recipe'} · ${t.counts?`${t.counts.train} train / ${t.counts.development} development / ${t.counts.heldout} held-out crops`:'splits reported after the first round'} · every round is a durable Terse job; kill the companion and restart, and the run continues from the next round.`));
   const first=t.rounds?.[0],best=t.best;

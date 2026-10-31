@@ -9,6 +9,7 @@
   },
   "scripts": {
     "dev": "node scripts/runtime.mjs server",
+    "dev:demo": "LOCAL_LAB_DEMO_PROPOSER=1 node scripts/runtime.mjs server",
     "check": "node scripts/check.mjs",
     "runtime:actors": "node scripts/runtime.mjs actors",
     "runtime:ollama": "node scripts/runtime.mjs ollama",

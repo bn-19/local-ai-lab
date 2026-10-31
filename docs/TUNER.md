@@ -35,6 +35,12 @@ Workspace flow: describe the task → Review setup shows the recipe, backbone an
 
 API additions: `POST /api/saved {kind: task|tuning, refId, name}`; `/api/state` now includes `tunings` and `saved`; `GET /api/tuning/recipes` includes the measured benchmark. Tuning jobs carry the tuning id as their task id so the live activity panel groups them.
 
+## Recording a run on a machine without Relay
+
+`npm run dev:demo` starts the server with `LOCAL_LAB_DEMO_PROPOSER=1`. Training, judging, the Device queue, durable jobs, Save model and the Monitor are all live. The one difference: when Relay is not configured, the proposer step runs as a local job that follows a fixed plan of six knob changes (epochs, normalisation, hidden layer, learning rate, epochs, weight decay) with a short pause so each turn is visible, instead of failing the run. The tuning record carries `proposer: "scripted"`, the panel says so under its status line, and the Proposer bubbles are labelled "scripted plan". With Relay identities and Ollama present, the real path runs and nothing is scripted, on the same command.
+
+Then in the app: describe "teach a vision model to recognize candy bars in photos", Review setup, Run task. Six rounds take under a minute with the feature cache.
+
 ## Reusing a trained head (hand-off)
 
 `train.py` writes `head.pt` and `config.json` to `--out`. The checkpoint holds `labels` (class order), `config`, `state` (head weights), `mean` and `std` (training-split feature statistics when `normalize_features` is on, else null), `backbone` and `splits` (image file names per split). Metrics are the JSON line on stdout.
