@@ -141,7 +141,17 @@ print(f"{'':22}{'local (tuned head)':>22}{a.model:>22}")
 print(f"{'accuracy':22}{l_acc*100:>21.1f}%{g_acc*100:>21.1f}%")
 print(f"{'time for all crops':22}{local_ms/1000:>20.2f}s{gpt_wall:>21.1f}s")
 print(f"{'per-crop latency':22}{local_ms/len(held):>20.2f}ms{result['gpt']['mean_ms']:>20.0f}ms")
-print(f"{'tokens billed':22}{'0':>22}{str(tok_in)+' in / '+str(tok_out)+' out':>22}")
+# USD per million tokens (input, output), OpenAI standard tier as published 2026; update when prices change.
+PRICES = {"gpt-5.4": (2.50, 15.00), "gpt-5.4-mini": (0.75, 4.50), "gpt-5.4-nano": (0.20, 1.25)}
+if a.model in PRICES:
+    pi, po = PRICES[a.model]
+    usd = tok_in / 1e6 * pi + tok_out / 1e6 * po
+    result["gpt"]["usd"] = usd
+    result["gpt"]["usd_per_1000"] = usd / len(held) * 1000
+    print(f"{'cost, this run':22}{'$0.00':>22}{'$'+format(usd, '.3f'):>22}")
+    print(f"{'cost per 1,000 crops':22}{'$0.00':>22}{'$'+format(usd / len(held) * 1000, '.2f'):>22}")
+else:
+    print(f"{'tokens billed':22}{'0':>22}{str(tok_in)+' in / '+str(tok_out)+' out':>22}  (no price on file for {a.model})")
 print(f"{'photo leaves laptop':22}{'no':>22}{'yes':>22}")
 if errors:
     print(f"GPT errors: {len(errors)}  first: {errors[0].get('error')}")

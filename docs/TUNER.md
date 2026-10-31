@@ -58,7 +58,10 @@ Live-photo detection (boxing bars in a fresh photo) is not part of this branch. 
 | accuracy | 99.7% | 74.0% | 83.2% |
 | all 292 crops | 0.01 s | 31 s | 42 s |
 | per crop | 0.02 ms | 831 ms | 1,126 ms |
-| tokens billed | 0 | 52,974 in / 1,995 out | 52,974 in / 1,638 out |
+| cost, this run | $0.00 | $0.049 | $0.157 |
+| cost per 1,000 crops | $0.00 | $0.17 | $0.54 |
 | photo leaves laptop | no | yes | yes |
+
+Costs use OpenAI's published standard-tier prices on 2026-10-31: gpt-5.4 $2.50 in / $15 out per million tokens, gpt-5.4-mini $0.75 / $4.50. Tokens billed: 52,974 in and 1,995 out (mini), 52,974 in and 1,638 out (5.4). Images were sent at "low" detail, so a high-detail run would cost several times more.
 
 GPT's main miss is Midnight Milky Way vs Milky Way (20 and 7 cases), then Snickers and Baby Ruth. The local head's single miss is one Milky Way read as Twix. The local score is on photos that match the training setup (same blanket, lighting and phone); on a fresh scene it would drop and GPT would hold steadier. The fair claim is "better on your own data, free and private", not "better than GPT in general". Requires `.local-lab/openai-key`; crops are sent to OpenAI only for this explicit run.
