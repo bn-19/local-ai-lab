@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.0.1] - 2026-10-31
+
+### Fixed
+- Bound photo model input to a whole-frame 1280-pixel / 1.5 MP copy, preserving originals and recording source/derived provenance.
+- Provision and verify a lightweight pinned Pillow preprocessing runtime without requiring CLIP or training libraries.
+- Report incomplete model responses without saving invalid estimates; allow up to 1600 output tokens within the existing 90-second limit.
+
 ## [0.4.0.0] - 2026-10-31
 
 ### Added
