@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f7f7f2">
+  <meta name="description" content="A calmer way to turn your data into a useful local AI workflow. Explore the sample, then run your own task on your Mac.">
+  <title>Local Lab · Your task, your computer</title>
+  <link rel="icon" href="./favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="./src/styles.css">
+  <script type="module" src="./src/app.js"></script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to workspace</a>
+<div class="shell">
+  <aside class="rail">
+    <a class="brand" href="./" aria-label="Local Lab home"><img src="./favicon.svg" width="34" height="34" alt=""><span>Local Lab<small>YOUR TASK. YOUR COMPUTER.</small></span></a>
+    <nav aria-label="Workspace"><button class="nav active" data-view="workspace"><span aria-hidden="true">⊞</span> Workspace</button><button class="nav" data-view="saved"><span aria-hidden="true">▤</span> Saved tasks <span id="saved-count" class="count">0</span></button><button class="nav" data-view="activity"><span aria-hidden="true">≋</span> Activity</button></nav>
+    <div class="rail-section"><p class="eyebrow">RECIPES</p><div class="recipe-current"><span class="tiny-chart" aria-hidden="true">▥</span><div>Data analytics<small>CSV → useful answers</small></div></div><div class="recipe-next">Candy recognition <small>Coming next</small></div></div>
+    <div class="rail-bottom"><span class="device-icon" aria-hidden="true">▱</span><strong id="rail-device">Runs on your computer</strong><p>Your files stay with you.<br>Your workflow becomes reusable.</p><button class="text-button" id="connection-link">Connect your Mac <span aria-hidden="true">↗</span></button></div>
+  </aside>
+  <div class="body">
+    <header class="topbar"><span>Personal workspace <span class="slash">/</span> <strong id="page-name">New task</strong></span><span id="connection-badge" class="badge"><i></i> Not connected</span></header>
+    <main id="main" tabindex="-1">
+      <div id="notice" role="status" aria-live="polite" hidden></div>
+      <section id="workspace-view">
+        <div class="page-heading"><div><p class="eyebrow">LET’S MAKE SOMETHING USEFUL</p><h1>A little less work.<br>A lot more understanding.</h1><p class="intro">Turn a CSV into a dashboard, with a model that runs on your computer.</p></div><span class="page-index" aria-hidden="true">01 / ANALYTICS</span></div>
+        <div class="workbench">
+          <section class="task-panel" aria-labelledby="task-heading">
+            <div class="section-heading"><span class="step">1</span><h2 id="task-heading">What would you like to understand?</h2></div>
+            <form id="task-form">
+              <label class="sr-only" for="task">Describe your task</label><textarea id="task" rows="3" maxlength="2000" placeholder="Help me understand my sales. Show monthly trends, the biggest product groups, and where we’re growing."></textarea>
+              <div class="suggestions" aria-label="Example requests"><button type="button" data-prompt="Show monthly trends and the biggest product groups in my sales data.">Understand sales</button><button type="button" data-prompt="Find the busiest periods and compare demand across categories.">Explore demand</button><button type="button" data-prompt="Summarize this CSV and highlight missing values and unusual patterns.">Find patterns</button></div>
+              <div class="section-heading file-heading"><span class="step">2</span><h2>Add your data</h2></div>
+              <div class="file-zone"><span class="file-icon" aria-hidden="true">↥</span><div><label for="csv">Choose a CSV file</label><p id="file-help">Connect your Mac to select a CSV. Files go directly to your local companion.</p><input id="csv" type="file" accept=".csv,text/csv" aria-describedby="file-help"></div></div>
+              <div id="profile" hidden></div>
+              <div class="form-footer"><span class="privacy-note"><span aria-hidden="true">⌂</span> Calculated locally. Saved locally.</span><button class="primary" type="submit" id="create-button">Connect your Mac <span aria-hidden="true">↗</span></button></div>
+            </form>
+            <div class="sample-strip"><span>No file handy? <strong>Take a look around.</strong></span><button class="text-button" id="sample-button">Explore a sample <span aria-hidden="true">→</span></button></div>
+          </section>
+          <aside class="setup-panel" aria-labelledby="setup-title"><p class="eyebrow">A SETUP THAT FITS</p><h2 id="setup-title">Small model.<br>Useful work.</h2><p>Describe the task first. Local Lab checks your computer and helps you choose what to run.</p><ol class="journey"><li><span>01</span><div><strong>Check your computer</strong><p>See what’s ready and what’s missing.</p></div></li><li><span>02</span><div><strong>Approve the setup</strong><p>Review the model and download size.</p></div></li><li><span>03</span><div><strong>Make it yours</strong><p>Use real results. Reuse a saved setup.</p></div></li></ol><div class="local-state" id="readiness"><span class="status-dot"></span><div><strong>Local companion required</strong><p>Connect explicitly to run tasks on your Mac.</p></div></div></aside>
+        </div>
+        <section id="runtime-panel" class="runtime-panel" hidden></section>
+        <section id="job-panel" class="job-panel" aria-live="polite" hidden></section>
+        <section id="dashboard" hidden aria-labelledby="dashboard-title"></section>
+      </section>
+      <section id="saved-view" hidden><p class="eyebrow">PICK UP WHERE YOU LEFT OFF</p><h1>Saved tasks</h1><p class="intro">Your local tasks and the setup that made them work.</p><div id="saved-list"></div></section>
+      <section id="activity-view" hidden><p class="eyebrow">BEHIND THE WORK</p><h1>Activity</h1><p class="intro">Actual job states, handoffs and evaluation results from your local companion.</p><div id="activity-list"></div></section>
+      <section id="connection-view" hidden><p class="eyebrow">ON YOUR COMPUTER</p><h1>Bring your own data.<br>Keep it close.</h1><p class="intro">Pair this workspace with your local companion to process your CSV and use an installed model.</p><div class="connection-layout"><section class="instructions"><h2>Start Local Lab on your Mac</h2><ol><li>Open the Local Lab project folder in your terminal.</li><li>Install the project dependencies: <code>npm install</code></li><li>Start the companion: <code>npm run dev</code></li><li>Open the local workspace below.</li></ol><a class="button primary" href="http://127.0.0.1:4173/app/">Open local workspace ↗</a><p class="muted">Requires the project source and Node 22 or later. The companion shows any additional runtime requirements.</p></section><aside class="boundary"><h2>Connect this workspace</h2><p>Start the companion, then paste the pairing token it shows locally. Your browser may ask permission to reach your computer.</p><form id="pair-form"><label for="pair-token">Local pairing token</label><input id="pair-token" type="password" autocomplete="off" spellcheck="false" placeholder="Paste the token from your Mac" required><button class="primary" type="submit">Connect to my Mac</button></form><p>The token stays in memory until you disconnect or reload. CSVs travel directly to 127.0.0.1:4173, never through Vercel.</p><p>Setup may use hosted Agent Relay for coordination. The local app reports connection status and what is shared. A local folder is not an operating-system sandbox.</p><button class="secondary" id="retry-connection">Check connection</button> <button class="secondary" id="disconnect">Disconnect</button><p id="connection-detail" class="muted">Pairing requires this exact website origin to be allowed by the companion.</p></aside></div></section>
+      <footer><span>Local Lab <span class="footer-dot">·</span> Made for everyday work</span><span>Analytics first. More recipes to come.</span></footer>
+    </main>
+  </div>
+</div>
+<noscript><p>This workbench needs JavaScript. No files are uploaded while JavaScript is disabled.</p></noscript>
+</body></html>
