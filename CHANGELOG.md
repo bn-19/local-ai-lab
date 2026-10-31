@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.3.0.0] - 2026-10-31
+
+### Changed
+- Follow the selected task in a compact Activity panel beside its result, with expandable saved steps and run evidence.
+- Keep device queue counts and Monitor metrics distinct from task activity, and reconstruct saved evidence after reconnecting and opening a task.
+
+### Fixed
+- Preserve expanded activity rows during polling and clear private activity on disconnect.
+- Distinguish sent messages from recipient receipts, show local handoff transport honestly, and omit unrecorded evaluation or tuning stages.
+- Prevent delayed saved-task responses from replacing a newer selected task or sample.
+
 ## [0.2.0.0] - 2026-10-31
 
 ### Added
