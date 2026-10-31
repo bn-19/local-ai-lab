@@ -16,7 +16,7 @@ identities ??= { workspaceKey: relay.workspaceKey };
 await writeFile(".local-lab/relay.json", JSON.stringify(identities), {
   mode: 0o600,
 });
-for (const name of ["planner", "evaluator"]) {
+for (const name of ["planner", "evaluator", "trainer"]) {
   if (identities[name]) continue;
   const a = await relay.workspace.register({
     name: "local-lab-" + name,
@@ -27,5 +27,5 @@ for (const name of ["planner", "evaluator"]) {
     mode: 0o600,
   });
 }
-console.log("App-owned Relay workspace and two identities saved privately");
+console.log("App-owned Relay workspace and three identities saved privately");
 process.exit(0);

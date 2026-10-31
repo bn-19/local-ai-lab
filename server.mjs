@@ -1,3 +1,6 @@
+import {recommendation,checkInstall} from './lib/model-selection.mjs';
+import {modelInventory} from './lib/model-inventory.mjs';
+import { extractDocument, documentLimit } from './lib/documents.mjs';
 import { createServer } from "node:http";
 import {
   readFile,
@@ -22,6 +25,9 @@ import {
   getJob,
   cancelJob,
   evaluate,
+  fineTune,
+  requestReport,
+  startAgentLoop,
   stopWorker,
 } from "./lib/jobs.mjs";
 const port = Number(process.env.PORT ?? 4173),
@@ -129,6 +135,8 @@ const server = createServer(async (req, res) => {
     try {
       if (pathname === "/api/health" && req.method === "GET")
         return send(200, await health());
+      if(pathname==="/api/models/recommend"&&req.method==="POST")return send(200,await recommendation(await jsonBody(req)));
+      if(pathname==="/api/models/inventory"&&req.method==="GET")return send(200,await modelInventory(await state()));
       if (pathname === "/api/state" && req.method === "GET") {
         const s = await state(),
           d = JSON.parse(await device.read());
@@ -142,9 +150,24 @@ const server = createServer(async (req, res) => {
           jobs: Object.entries(s)
             .filter(([k]) => k.startsWith("job:"))
             .map(([, v]) => v),
+          loops:Object.entries(s).filter(([k])=>k.startsWith("loop:")).map(([,v])=>v),
           recipe: s.recipe ?? null,
           device: d,
         });
+      }
+      if (pathname === "/api/files" && req.method === "POST") {
+        const id=randomUUID(), name=path.basename(decodeURIComponent(String(req.headers['x-filename']||'document.txt'))).slice(0,160);
+        const directory=path.join(root,'documents');await mkdir(directory,{recursive:true,mode:0o700});
+        const file=path.join(directory,id), tmp=file+'.part';let size=0;
+        try {
+          await pipeline(req,new Transform({transform(chunk,encoding,done){size+=chunk.length;done(size>documentLimit?Error('Document limit is 10 MB'):null,chunk);}}),createWriteStream(tmp,{flags:'wx',mode:0o600}));
+          const text=await extractDocument(tmp,name);
+          await rename(tmp,file);
+          await writeFile(file+'.txt',text,{mode:0o600,flag:'wx'});
+          const metadata={id,name,kind:'document',bytes:size,characters:text.length};
+          await save('document:'+id,metadata);
+          return send(201,metadata);
+        } catch(error) {await Promise.all([tmp,file,file+'.txt'].map(f=>rm(f,{force:true})));throw error;}
       }
       if (pathname === "/api/datasets" && req.method === "POST") {
         if (!req.headers["content-type"]?.startsWith("text/csv"))
@@ -184,12 +207,8 @@ const server = createServer(async (req, res) => {
       }
       if (pathname === "/api/models/install" && req.method === "POST") {
         const b = await jsonBody(req);
-        if (b.model !== "qwen3:4b")
-          throw Error("Only the reviewed qwen3:4b install is supported");
-        const h = await health();
-        if (h.machine.freeDiskGB < 6 || h.machine.memoryGB < 8)
-          throw Error("Insufficient machine capacity for the selected model");
-        const j = await enqueue("install", null);
+        await checkInstall(b.model);
+        const j = await enqueue("install", null,{modelId:b.model});
         return send(202, { jobId: j.id });
       }
       if (pathname === "/api/tasks" && req.method === "POST")
@@ -206,7 +225,7 @@ const server = createServer(async (req, res) => {
         }
       }
       match = pathname.match(
-        /^\/api\/tasks\/([a-f0-9-]{36})(\/(dashboard|followup|evaluate))?$/,
+        /^\/api\/tasks\/([a-f0-9-]{36})(\/(dashboard|followup|evaluate|finetune|report|agentloop))?$/,
       );
       if (match) {
         const s = await state(),
@@ -229,11 +248,21 @@ const server = createServer(async (req, res) => {
               202,
               await createTask({
                 ...t,
+                modelId:t.model.id,
                 request: b.request,
                 reuseRecipe: true,
                 followup: true,
               }),
             );
+          if(match[3]==='agentloop'){const j=await startAgentLoop(t.id);return send(202,{jobId:j.id});}
+          if (match[3] === "report") {
+            const j=await requestReport(t.id,b);
+            return send(202,{jobId:j.id});
+          }
+          if (match[3] === "finetune") {
+            const j = await fineTune(t.id);
+            return send(202, { jobId: j.id });
+          }
           if (match[3] === "evaluate") {
             const j = await evaluate(t.id);
             return send(202, { jobId: j.id });

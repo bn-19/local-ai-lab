@@ -12,11 +12,11 @@ mock.module('../../lib/actors.mjs', { namedExports: {
   },
 }});
 mock.module('../../lib/data.mjs', { namedExports: {
-  dashboard: async () => ({}), validateDefinition: () => {},
+  dashboard: async () => ({}), liveReport: async () => ({}), candyReport: async () => ({}), validateDefinition: () => {},
 }});
 mock.module('../../lib/relay.mjs', { namedExports: {
   connectRelay: async () => {}, requestWork: async () => {},
-  completed: async () => {}, relayStatus: { ready: true },
+  completed: async () => {}, agentHandoff: async () => {}, receiveHandoff: async () => null, relayStatus: { ready: true },
 }});
 const { cancelJob, evaluate } = await import('../../lib/jobs.mjs');
 for (const kind of ['evalcase', 'optimize']) {
@@ -42,3 +42,18 @@ assert.equal(cancelled.length, before);
 assert.equal(records['job:finished'].status, 'ready');
 await assert.rejects(cancelJob('missing'), /Job not found/);
 console.log('Queued evaluation cancellation and retry passed');
+// A newer candy adapter must never replace a retail adapter, or vice versa.
+const { requestReport } = await import('../../lib/jobs.mjs');
+records['dataset:retail']={columns:['InvoiceNo','StockCode','Quantity','UnitPrice'].map(name=>({name,type:['Quantity','UnitPrice'].includes(name)?'DOUBLE':'VARCHAR'}))};
+records['dataset:candy']={columns:['competitorname','winpercent','sugarpercent','pricepercent','chocolate','fruity'].map(name=>({name,type:'DOUBLE'}))};
+records['task:retail']={id:'retail',datasetId:'retail'};
+records['task:candy']={id:'candy',datasetId:'candy'};
+records['fineTune:retail-trained']={selected:'adapter'};
+records['fineTune:candy-trained']={selected:'adapter',profile:'candy'};
+assert.equal((await requestReport('retail',{request:'Revenue?'})).payload.adapterJobId,'retail-trained');
+assert.equal((await requestReport('candy',{request:'Most popular candies?'})).payload.adapterJobId,'candy-trained');
+await assert.rejects(requestReport('candy',{request:'Popular?',adapterJobId:'retail-trained'}),/successful adapter/);
+records['task:coder']={id:'coder',model:{id:'qwen2.5-coder:1.5b'}};
+await assert.rejects(requestReport('coder',{request:'Most popular candies?'}),/another selected base/);
+const {fineTune}=await import('../../lib/jobs.mjs');
+await assert.rejects(fineTune('coder'),/unavailable/);
