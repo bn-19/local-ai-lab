@@ -32,3 +32,5 @@ Backend independently verified UCI Bike Sharing day.csv (CC BY4): sum cnt, date 
 Backend also verified UCI Retail541909 rows/47.8MB, revenue9,747,747.934, saved-recipe follow-up, cancellation/alarm/recovery. These are backend measurements, not browser timing claims.
 
 One isolated Chrome session is explicitly approved for the final deployed-origin Bike workflow, responsive checks, evaluation display and disconnect. Cleanup must close only its temporary browser/profile and verify no task-owned process remains. Browser results will be appended after the run.
+
+Git deployment requires GitHub to recognize the commit author and Vercel to authorize that contributor. The initial machine-default email was unrecognized; this checkout now uses the authenticated owner's GitHub noreply address. Friends should use their own verified GitHub identity and their authorized Vercel account, never borrow another author's identity. No collaborators were invited and no paid plan was enabled.
