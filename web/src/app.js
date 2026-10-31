@@ -1,4 +1,4 @@
-import {visionView,pileResultView} from './vision.js';
+import {visionView,pileResultView,pileEstimateView} from './vision.js';
 import {modelInventoryView} from './model-inventory.js';
 import {showAgentLoop,hideAgentLoop} from './agent-loop.js';
 import { LocalAPI, selectActivityTask } from './api.js';
@@ -180,7 +180,7 @@ async function loadTask(id) {
   $('dashboard').replaceChildren();$('dashboard').hidden=true;
   currentTask=task.id;selectActivityTask(currentTask);sample=false;
   hideAgentLoop();
-  if(task.pileResult){const r=task.pileResult;$('dashboard').hidden=false;$('dashboard').replaceChildren(pileResultView(r));api.get('/api/photos/'+r.photoId).then(photo=>{if(generation===epoch&&load===taskLoad&&currentTask===task.id)$('dashboard').replaceChildren(pileResultView(r,photo.preview));}).catch(()=>{if(generation===epoch&&load===taskLoad&&currentTask===task.id)$('dashboard').append(el('p',{role:'status'},'Image unavailable — boxes not shown. Reopen this saved task to retry; counts above remain saved.'));});return;}
+  if(task.pileResult||task.pileEstimate){const r=task.pileResult??task.pileEstimate,render=r.kind==='pile-estimate'?pileEstimateView:pileResultView;$('dashboard').hidden=false;$('dashboard').replaceChildren(render(r));api.get('/api/photos/'+r.photoId).then(photo=>{if(generation===epoch&&load===taskLoad&&currentTask===task.id)$('dashboard').replaceChildren(render(r,photo.preview));}).catch(()=>{if(generation===epoch&&load===taskLoad&&currentTask===task.id)$('dashboard').append(el('p',{role:'status'},'Image unavailable — boxes not shown. Reopen this saved task to retry; counts above remain saved.'));});return;}
   if(task.visionResult){const r=task.visionResult;$('dashboard').hidden=false;$('dashboard').replaceChildren(el('h2',{id:'dashboard-title'},r.label),el('p',{},r.scope),el('p',{},r.scoreMeaning),el('p',{},'Saved local vision result · '+r.model.selected+' · '+r.model.revision));return;}
   if(task.textResult){renderDocument({...task,documentResult:{...task.textResult,name:'Answer',parts:[],model:task.model}});return;}
   if(task.documentResult){renderDocument(task);return;}

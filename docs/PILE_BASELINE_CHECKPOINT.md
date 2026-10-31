@@ -29,3 +29,7 @@ The locally regenerated friend head was tested on actual detected pile crops in 
 Four separated bars from source image IMG_1930 were a component regression only. Job `bdb6b344-4664-4f0b-9e3d-728b4cf44202` correctly localized all four; raw learned-head candidates named all four, but the conservative unknown guard accepted only Baby Ruth and 100 Grand. One nested duplicate 100 Grand region was excluded and retained in `suppressedInstances`. Runtime 11.253 seconds. This image belongs to the recipe dataset and is NOT an unseen pile test.
 
 The UI exposes real experimental overlays, accepted counts, unknowns and saved results, with explicit limitations. No correct repeated-brand real-pile checkpoint has been achieved; no reliable completion ETA is claimed.
+
+## Whole-photo VLM setup checkpoint
+
+The approved local `qwen3-vl:2b` download completed in 127.768 seconds and passed full manifest-digest and vision-capability verification. Its first Device inference job `cdd8f869-d9a8-4467-bba1-2b6c2676b195` failed immediately with an Ollama HTTP 400. No estimated candy result was produced by that run. A bounded diagnostic retry is in progress; do not advertise a successful VLM demo until a recorded actual result is available.

@@ -297,3 +297,5 @@ td:last-child, th:last-child { text-align: right; }
 .live-activity summary:focus-visible { outline:2px solid var(--pine); outline-offset:4px; }
 .live-activity dl { font-size:12px; }
 @media(max-width:1100px) { .task-activity-layout { grid-template-columns:minmax(0,1fr); } }
+
+.pile-overlay{position:relative;max-width:640px}.pile-photo{display:block;width:100%;max-width:640px;height:auto}.pile-box{position:absolute;box-sizing:border-box;border:2px solid #00b879;pointer-events:none}.pile-box.uncertain{border-style:dashed;border-color:#f5a524}.pile-box span{background:#00b879;color:#111;font-size:12px;padding:1px 3px}.pile-box.uncertain span{background:#f5a524}

@@ -28,3 +28,13 @@ Actual regeneration: fixed 30 epochs, learning rate .002, decay .0001, hidden 25
 All actions use the single Terse Device queue: `install`, `install-detector`, `train-pile-head`, `detect` (CLIP baseline), `detect-friend` (explicit unpromoted candidate). Upload JPEG/PNG up to 8 MB via `POST /api/photos`; saved previews use authenticated `GET /api/photos/:id`. Worker image validation caps 20 MP and one frame. Cancellation uses the existing process-group handling and checks before actor commits. No automatic candidate promotion occurs.
 
 See `PILE_BASELINE_CHECKPOINT.md` for actual pile failures and job identifiers. Earlier five-class MIMEX single-product experiments are retained as component research only and are not the current deliverable.
+
+## Whole-photo estimated counts
+
+The primary photo-understanding option now uses a separately downloaded local Qwen3-VL 2B model. This reviewed recipe is recommended for the candy-photo/counting task, not claimed to be the best model or a universal computer-vision selector. It returns approximate visible-package brands/counts, evidence, uncertain entries and unidentified packages. These estimates are separate from detector-confirmed regions and do not use the fine-tuned crop head. No boxes are invented for VLM estimates; no ChatGPT/Claude parity benchmark has been established.
+
+Official Ollama `qwen3-vl:2b`, Apache-2.0, manifest SHA256 `0635d9d857d497aeadba3d7d27485746c50554446f9f6ec01ef39788221adbe8`. Local installation verified the full digest and `vision` capability. Actual Device download took 127.768 seconds on this Mac; that is not a universal setup-time promise. The approximately 1.9 GB model persists in the existing Ollama model inventory until explicitly removed. There is no cloud inference.
+
+Actions `install-vlm` and `detect-vlm` use the single Device queue. Pull cap 180 seconds, inference request cap 90 seconds, input up to 8 MB/20 MP JPEG or single-frame PNG, fixed bounded output schema. Unknown object keys and duplicate/unbounded counts are rejected; only reconstructed validated fields enter saved results. User cancellation discards output but waits for original request completion; error/timeout cleanup retains the Device reservation until successful Ollama unload acknowledgement and absence from `/api/ps`. Reporting failures cannot release that reservation. If shutdown cannot be confirmed, the job remains reserved with an explicit recovery status.
+
+Vision jobs show actual local tool/model progress, not fictitious Agent Relay handoffs. The separate analytics workflow demonstrates the actual Relay-backed agent loop.

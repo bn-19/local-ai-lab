@@ -139,7 +139,7 @@ const server = createServer(async (req, res) => {
       if(pathname==='/api/vision'&&req.method==='POST'){
         const b=await jsonBody(req),action=visionAction(b.action);
         const snapshot=await state();if(Object.entries(snapshot).some(([key,v])=>key.startsWith('job:')&&v?.kind==='vision'&&['queued','running'].includes(v.status)))throw Error('A vision job is already queued or running');
-        const task=['predict','detect','detect-friend'].includes(action)?await createVisionTask(b.photoId,action):null;
+        const task=['predict','detect','detect-friend','detect-vlm'].includes(action)?await createVisionTask(b.photoId,action):null;
         const job=await enqueue('vision',task?.id??null,{action,photoId:task?.photoId});return send(202,{jobId:job.id,taskId:task?.id??null});
       }
       if(pathname==='/api/photos'&&req.method==='POST'){
