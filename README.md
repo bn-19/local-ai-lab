@@ -1,67 +1,60 @@
 # Local Lab
 
-**Describe an everyday task. Get a local model setup that is checked and tuned for it.**
+Describe a task, choose a CSV, and get a local model-assisted dashboard with trusted calculations.
 
-Local Lab helps people select, install, evaluate and improve open-source local models. The Haunted Hacks demo has two recipes: **candy recognition** and **data analytics**. The platform direction is broader everyday tasks; that is not a claim that arbitrary tasks are already supported.
+The working analytics path uses **Ollama/Qwen3**, **DuckDB**, **Agent Relay** handoffs and **Terse Durable Actors**. The public Vercel frontend connects directly to an explicitly paired loopback service on your Mac. It does not upload your CSV to Vercel or Relay.
 
-![Local Lab screen concept](docs/design.png)
+## Run
 
-## Start here
-
-1. Open this repository as a project in Codex.
-2. Paste the prompt from [START_HERE.md](START_HERE.md).
-3. Read [the build plan](docs/BUILD_PLAN.md) and [architecture](docs/ARCHITECTURE.md).
-
-The first live implementation session is analytics-focused: [analytics session prompt](docs/ANALYTICS_SESSION_PROMPT.md). It includes authorized bounded development subagents and the complete task → model install → evaluation/tuning → CSV dashboard journey. Candy remains the planned second demo.
-
-## Run the design preview
-
-Node 22 or later; no package installation is needed.
+Node 22+; pinned Bun is installed as a project dependency. This Mac has the app-owned Ollama runtime and Qwen3 4B model installed in ignored `.local-lab/` storage.
 
 ```sh
+npm ci
+npm --prefix web run build
+```
+
+Run each service in its own terminal:
+
+```sh
+npm run runtime:actors
+npm run runtime:ollama
 npm run dev
 ```
 
-Open **http://127.0.0.1:4173** manually. To use another port, set `PORT`. Stop the server with Ctrl+C. `npm run check` checks JavaScript syntax without starting a browser.
+Open [the hosted frontend](https://local-lab-bn-19s-projects.vercel.app) or [local fallback](http://127.0.0.1:4173/app/). Read `.local-lab/pairing-token` locally and enter it in Connect your Mac. Never put this token in a URL, source file or chat. Browser loopback permission may be required; unsupported browsers receive a connection error.
 
-The interactive preview supports recipe switching, a task description, filename selection/validation and a proposed setup outline. It does not read file contents, upload files, call an AI model, register agents, connect a database or run training. Decorative outputs are illustrations. The server exposes only the public preview files and binds to loopback.
+[Detailed setup and recovery](docs/IMPLEMENTATION.md) · [API contract](docs/LOCAL_API_CONTRACT.md) · [Frontend handoff](docs/FRONTEND_HANDOFF.md) · [Dataset sources](docs/DATASETS.md)
 
-## What the real app should demonstrate
+## What works
 
-- A person describes their task and approves the setup/download budget.
-- A planner and evaluator/optimizer perform useful work through **Agent Relay**.
-- **Terse Durable Actors** retain task/trial state and coordinate one heavy model job at a time.
-- The app measures a baseline and proposes a bounded improvement, preserving the baseline if tuning loses.
-- The person receives a usable local task interface and a clear explanation of the tradeoff.
+- Actual machine/runtime inspection, catalog recommendation and approved model download with durable status/cancellation.
+- Streaming CSV upload, embedded analytics import, column types/missingness/date coverage and explicit measure choices.
+- A local model returns validated operation/chart choices; trusted code computes KPI cards, two charts and an equality filter.
+- Real Planner/Evaluator Relay messages trigger local work; Terse retains tasks, queue attempts, model/config identity and results.
+- Four-case development/held-out configuration comparison; baseline retained unless held-out correctness improves.
+- Saved local recipes and follow-ups, queued cancellation, alarm-triggered deferred work, stale-result fencing and between-job recovery.
 
-| Demo | Intended output | Model strategy |
-| --- | --- | --- |
-| Candy recognition | Candy types present; boxes/counts only when an object detector is implemented | Small pretrained classifier or detector, with approved labeled examples and held-out photos |
-| Data analytics | Correct calculated metrics and useful charts from a CSV | Small local text model selects validated operations; trusted code calculates results |
+The measured public Bike Sharing and 541,909-row Online Retail checks are documented in [implementation evidence](docs/IMPLEMENTATION.md). Local result files remain ignored. No benchmark from another Mac is used as evidence.
 
-An agent is a worker that makes decisions and uses tools. A model is an engine that worker can use. Downloads, renderers and arithmetic are ordinary code, not additional agents.
+## Boundaries
 
-## Files
+Only narrow CSV operations are supported: count, sum, mean and sum of a product of two columns. No model-written SQL, Python or shell runs. Prompt/configuration optimization is not weight training. No LoRA is implemented. Candy recognition remains the second planned demo; audio/image generation are future recipes.
 
-| File | Purpose |
-| --- | --- |
-| [START_HERE.md](START_HERE.md) | Copy-paste implementation prompt for Codex |
-| [AGENTS.md](AGENTS.md) | Repo working rules and browser/privacy boundaries |
-| [PRODUCT.md](PRODUCT.md), [DESIGN.md](DESIGN.md) | Product intent and quick visual direction |
-| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Repo roles, adapters, scheduling and data ownership |
-| [docs/BUILD_PLAN.md](docs/BUILD_PLAN.md) | Five-hour milestones, teammate split and cut decisions |
-| [docs/DATASETS.md](docs/DATASETS.md) | Sources, training targets and time-budget caveats |
-| [docs/design.svg](docs/design.svg) | Static screen concept; not a screenshot or model result |
-| `index.html`, `styles.css`, `app.js` | Interactive design prototype |
+Raw inputs, weights, credentials, actor state and generated results stay in ignored local directories. A project directory is not an OS security sandbox. Hosted Relay receives IDs/settings/aggregate development findings only. Daily follow-ups can run without new hosted Relay requests.
 
-## Scope and honesty
+The old root `index.html`, `app.js` and `styles.css` are preserved design artifacts; the working frontend lives in `web/`. The server serves it at `/app/` and redirects `/` there when built.
 
-The starter has **no implemented model, Terse, Relay or Supabase integration**. Build a real shared request/result path first. No universal installer, production OS sandbox or verified “best model” claim is implied. Model selection means best among configurations actually tested for a particular supported task.
+## Verification
 
-Candy recognition and analytics are the current demo. Audio and image generation are future recipe directions. Weight fine-tuning is optional after a baseline works and a short measured pilot fits the budget. Prompt/settings changes must be labelled separately from learned adapters.
+```sh
+npm run check
+npm test
+node scripts/acceptance.mjs
+node scripts/actor-checks.mjs
+node scripts/lifecycle-checks.mjs
+node scripts/large-acceptance.mjs
+```
 
-## Event and sharing
+Integration scripts require the running local services and the public fixtures described in the run guide. None launches a browser. Chrome automation always requires explicit approval for that specific session.
 
-[Haunted Hacks](https://events.ycombinator.com/haunted-hacks-2026), October 31, 2026: hacking 11 a.m.–4 p.m. Pacific, Builderbase submission, all application code created at the event. Check permitted preparation and supported sponsor package versions with organizers.
-
-This repository is intended to be private. Add friends through GitHub repository **Settings → Collaborators**. Never commit credentials, private datasets, downloaded weights or training artifacts. Check upstream model/data licenses before redistribution.
+Private repository. Do not commit credentials, private datasets, weights or local evaluation artifacts.
