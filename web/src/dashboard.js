@@ -33,7 +33,8 @@ export function chartView(chart) {
   if (!points.length) return box.appendChild(element('p',{},'No values for this filter.')), box;
   const shown = points.slice(0,40);
   const width=500, height=245, left=62, right=18, top=15, bottom=40;
-  const max=Math.max(0,...shown.map(p=>p.value)), min=Math.min(0,...shown.map(p=>p.value));
+  let max=Math.max(0,...shown.map(p=>p.value)); const min=Math.min(0,...shown.map(p=>p.value));
+  if(max===min)max=min+1;
   const range=max-min || 1, plotH=height-top-bottom, plotW=width-left-right;
   const y=v=>top+(max-v)/range*plotH;
   const svg=svgNode('svg',{viewBox:`0 0 ${width} ${height}`,role:'img','aria-label':`${chart.title}. Exact values are in the data table below.`});

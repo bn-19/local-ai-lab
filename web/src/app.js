@@ -2,7 +2,7 @@ import { LocalAPI } from './api.js';
 import { element as el, chartView, number, sampleDashboard } from './dashboard.js';
 const $ = id => document.getElementById(id);
 const api = new LocalAPI();
-let health=null, dataset=null, currentTask=null, activeJob=null, timer=null, sample=false, busy=false, epoch=0;
+let health=null, dataset=null, currentTask=null, activeJob=null, timer=null, sample=false, busy=false, pairing=false, epoch=0;
 const views=['workspace','saved','activity','connection'];
 function notify(message, error=false) { $('notice').textContent=message; $('notice').className=error?'error':''; $('notice').hidden=false; }
 function view(name) {
@@ -23,6 +23,10 @@ function updateConnection() {
   $('readiness').replaceChildren(el('span',{class:'status-dot'}),el('div',{},el('strong',{},api.connected?'Your Mac is connected':'Local companion required'),el('p',{},api.connected?`${number(health.machine.memoryGB)} GB memory · ${number(health.machine.freeDiskGB)} GB disk available`:'Pair explicitly to run tasks on your Mac.')));
 }
 async function pair(token) {
+  if(pairing)return;
+  pairing=true;
+  const submit=$('pair-form').querySelector('button');submit.disabled=true;
+  try {
   const generation=++epoch;
   health=await api.pair(token);
   if(generation!==epoch)return;
@@ -30,6 +34,7 @@ async function pair(token) {
   updateConnection(); renderRuntime(); await refreshSavedCount();
   $('connection-detail').textContent='Connected directly to your Mac. Your files are processed by the local companion.';
   notify('Connected. Choose a CSV to create your dashboard.');view('workspace');
+  } finally {pairing=false;submit.disabled=false;}
 }
 function disconnect() {
   epoch++;api.disconnect();clearTimeout(timer);health=null;dataset=null;currentTask=null;activeJob=null;sample=false;busy=false;
@@ -51,8 +56,9 @@ function renderRuntime() {
   panel.append(el('p',{},`Model runtime: ${runtime?.ready?'ready':'not available'}. Saved job state: ${health.runtimes.terse?.ready?'ready':'Terse unavailable'}. Agent handoffs: ${health.runtimes.relay?.ready?'connected':health.runtimes.relay?.error || 'Relay not configured'}.`));
 }
 async function install() {
+  if(busy)throw new Error('Wait for the current local job to finish.');
   const result=await api.post('/api/models/install',{model:health.recommendation.id});
-  await watchJob(result.jobId);
+  await watchJob(result.jobId,null);
 }
 function selectField(id,label,options,placeholder) {
   const select=el('select',{id,required:!placeholder},placeholder?el('option',{value:''},placeholder):el('option',{value:''},'Choose a column'),options.map(o=>el('option',{value:o.value??o},o.label??o)));
@@ -75,7 +81,7 @@ async function importCSV() {
   finally{if(generation===epoch){busy=false;updateConnection();}}
 }
 async function createTask(event) {
-  event.preventDefault();if(!api.connected){view('connection');return;}
+  event.preventDefault();if(busy)throw new Error('Wait for the current local operation to finish.');if(!api.connected){view('connection');return;}
   if(!dataset)throw new Error('Choose a CSV before creating your dashboard.');
   if(!$('task').value.trim())throw new Error('Describe what you want to understand.');
   const operation=$('operation').value;
@@ -83,7 +89,7 @@ async function createTask(event) {
   const result=await api.post('/api/tasks',{request:$('task').value.trim(),datasetId:dataset.id,measure:{operation,column:$('measure-column').value||undefined,column2:operation==='product_sum'?$('measure-column2').value:undefined},dateColumn:$('date-column').value||null,groupColumn:$('group-column').value,filterColumn:$('filter-column').value||null,negativePolicy:$('negative-policy').value,reuseRecipe:true});
   sample=false;currentTask=result.taskId;await watchJob(result.jobId);
 }
-async function watchJob(id) {
+async function watchJob(id,taskId=currentTask) {
   clearTimeout(timer);activeJob=id;busy=true;updateConnection();renderRuntime();
   const generation=epoch;const panel=$('job-panel');panel.hidden=false;
   const poll=async()=>{
@@ -96,7 +102,7 @@ async function watchJob(id) {
         busy=false;activeJob=null;updateConnection();
         if(job.error)panel.append(el('p',{},job.error));
         if(job.status==='ready') {
-          if(job.taskId || currentTask)await loadTask(job.taskId||currentTask);
+          if(job.taskId || taskId)await loadTask(job.taskId||taskId);
           health=await api.get('/api/health');renderRuntime();await refreshSavedCount();
           notify('Local job completed. Results are saved by your companion.');
         }else notify(job.error || `Job ${job.status}. You can retry from your saved task.`,job.status!=='cancelled');
@@ -106,7 +112,7 @@ async function watchJob(id) {
   await poll();
 }
 async function loadTask(id) {
-  const task=await api.get(`/api/tasks/${encodeURIComponent(id)}`);currentTask=task.id;sample=false;
+  const generation=epoch;const task=await api.get(`/api/tasks/${encodeURIComponent(id)}`);if(generation!==epoch)return;currentTask=task.id;sample=false;
   if(task.dashboard)renderDashboard(task.dashboard,task.evaluation);else notify(task.error||`Saved task is ${task.status}.`);
 }
 function renderDashboard(data,evaluation=null,filterValue='') {
@@ -154,5 +160,4 @@ $('retry-connection').addEventListener('click',()=>run(async()=>{health=await ap
 $('disconnect').addEventListener('click',disconnect);
 window.addEventListener('pagehide',()=>{api.disconnect();clearTimeout(timer);});
 updateConnection();
-// Same-origin health is safe to probe. Hosted pages never probe loopback before explicit pairing.
-if(api.sameOrigin)run(()=>pair(''));
+// Both hosted and same-origin pages require explicit token pairing.

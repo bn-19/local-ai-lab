@@ -8,7 +8,7 @@ export class LocalAPI {
     this.controllers = new Set();
   }
   async pair(token) {
-    if (!this.sameOrigin && !token.trim()) throw new Error('Enter the pairing token shown by your local companion.');
+    if (!token.trim()) throw new Error('Enter the pairing token shown by your local companion.');
     this.token = token.trim();
     try {
       const health = await this.request('/api/health');
@@ -24,7 +24,7 @@ export class LocalAPI {
   }
   async request(path, { method = 'GET', body, headers = {}, timeout = 30000 } = {}) {
     if (!/^\/api\/[a-zA-Z0-9_/?=&.%:-]+$/.test(path)) throw new Error('Unsupported local API path.');
-    if (!this.sameOrigin && !this.token) throw new Error('Connect your local companion first.');
+    if (!this.token) throw new Error('Connect your local companion first.');
     const controller = new AbortController(); this.controllers.add(controller);
     const timer = setTimeout(() => controller.abort(), timeout);
     try {

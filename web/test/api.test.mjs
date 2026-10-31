@@ -15,7 +15,7 @@ test('failed pairing clears credentials and reports server errors',async()=>{
 });
 test('upload keeps raw CSV on fixed local endpoint and encodes filename',async()=>{
  let call;const api=new LocalAPI({origin:LOOPBACK,fetcher:async(url,options)=>{call={url,options};return response({id:'data-1'});}});
- const file=new File(['a,b\n1,2\n'],'a b.csv');await api.upload(file);assert.equal(call.url,LOOPBACK+'/api/datasets');assert.equal(call.options.body,file);assert.equal(call.options.headers['X-Filename'],'a%20b.csv');
+ api.token='local-test-token';const file=new File(['a,b\n1,2\n'],'a b.csv');await api.upload(file);assert.equal(call.url,LOOPBACK+'/api/datasets');assert.equal(call.options.body,file);assert.equal(call.options.headers['X-Filename'],'a%20b.csv');
  await assert.rejects(()=>api.get('//evil.example/api/state'),/Unsupported/);
 });
 test('sample filter recalculates all metrics and both charts',()=>{
