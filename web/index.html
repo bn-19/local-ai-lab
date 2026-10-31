@@ -6,13 +6,14 @@
   <title>Local Lab</title>
   <link rel="icon" href="./favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="./src/styles.css">
   <script type="module" src="./src/app.js"></script>
+  <script type="module" src="./src/activity.js"></script>
 </head>
 <body>
 <a class="skip" href="#main">Skip to workspace</a>
 <div class="shell">
   <aside class="rail">
     <a class="brand" href="./" aria-label="Local Lab home"><img src="./favicon.svg" width="34" height="34" alt=""><span>Local Lab</span></a>
-    <nav aria-label="Workspace"><button class="nav active" data-view="workspace"><span aria-hidden="true">⊞</span> Workspace</button><button class="nav" data-view="saved"><span aria-hidden="true">▤</span> Saved tasks <span id="saved-count" class="count">0</span></button><button class="nav" data-view="activity"><span aria-hidden="true">≋</span> Activity</button></nav>
+    <nav aria-label="Workspace"><button class="nav active" data-view="workspace"><svg class="nav-icon" viewBox="0 0 22 22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"><rect x="3" y="3" width="6" height="6" rx="1"/><rect x="13" y="3" width="6" height="6" rx="1"/><rect x="3" y="13" width="6" height="6" rx="1"/><rect x="13" y="13" width="6" height="6" rx="1"/></svg> Workspace</button><button class="nav" data-view="saved"><svg class="nav-icon" viewBox="0 0 22 22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"><path d="M5 3h12v17l-6-4-6 4z"/></svg> Saved tasks <span id="saved-count" class="count">0</span></button><button class="nav" data-view="activity"><svg class="nav-icon" viewBox="0 0 22 22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"><path d="M2 12h4l3-8 4 16 3-8h4"/></svg> Activity</button></nav>
     <div class="rail-bottom"><strong id="rail-device" hidden></strong><button class="text-button" id="connection-link">Connect your Mac <span aria-hidden="true">↗</span></button></div>
   </aside>
   <div class="body">
@@ -34,6 +35,7 @@
           </section>
         </div>
         <section id="job-panel" class="job-panel" aria-live="polite" hidden></section>
+        <section id="live-activity" class="live-activity" hidden aria-labelledby="live-activity-title"></section>
         <section id="dashboard" hidden aria-labelledby="dashboard-title"></section>
       </section>
       <section id="saved-view" hidden><h1>Saved tasks</h1><div id="saved-list"></div></section>

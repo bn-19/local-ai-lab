@@ -29,10 +29,10 @@ function svgNode(tag, attrs = {}, text = '') {
 }
 export function chartView(chart) {
   const points = (chart.points || []).filter(p => Number.isFinite(Number(p.value))).map(p => ({ label:String(p.label), value:Number(p.value) }));
-  const box = element('section', {class:'chart'}, element('h3',{},chart.title));
+  const box = element('section', {class:`chart chart--${chart.kind==='line'?'trend':'comparison'}`}, element('h3',{},chart.title));
   if (!points.length) return box.appendChild(element('p',{},'No values for this filter.')), box;
   const shown = points.slice(0,40);
-  const width=500, height=245, left=62, right=18, top=15, bottom=40;
+  const width=chart.kind==='line'?640:360, height=280, left=56, right=16, top=16, bottom=40;
   let max=Math.max(0,...shown.map(p=>p.value)); const min=Math.min(0,...shown.map(p=>p.value));
   if(max===min)max=min+1;
   const range=max-min || 1, plotH=height-top-bottom, plotW=width-left-right;

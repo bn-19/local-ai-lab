@@ -52,3 +52,11 @@ Tested deployed frontend `aae80fb69da3988f2bb7c49e13db4e50f1b5fe36` on the actua
 - Browser closed, temporary profile removed, process check found zero test-owned processes. Backend remains running with idle Device queue for the demo.
 
 Local evidence: `/tmp/local-lab-browser-final/evidence.json`, `dashboard-desktop.png`, `dashboard-mobile.png`. These contain public-fixture results only and are intentionally not bundled or committed.
+
+## Design and live activity update
+
+Consistent outline navigation icons, a 4px spacing rhythm, a dominant trend chart and quieter comparison chart refine the existing paper/pine design. Copy stays minimal; receipts are available under Handoff details.
+
+`web/src/activity.js` renders persisted Planner/Evaluator handoffs and local job stages from `activity-state.js`. The API observer starts only after explicit pairing, refreshes every second during queued/running work and every four seconds while idle, and stops on disconnect or when no subscribers remain. Late responses after disconnect are discarded. Errors show an explicit retry state; no simulated agent progress is introduced. The activity module is independent of ongoing changes in `app.js`.
+
+Design guidance: Impeccable and [Unslop](https://github.com/heydamir/unslop) by Damir Sokolovsky (heydamir), [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/), adapted to the existing product palette and layout. This revision was checked with Node tests and the static build; the browser acceptance above applies to its stated earlier revision.
