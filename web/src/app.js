@@ -1,8 +1,13 @@
-import { LocalAPI } from './api.js';
+import {modelInventoryView} from './model-inventory.js';
+import {showAgentLoop,hideAgentLoop} from './agent-loop.js';
+import { LocalAPI, selectActivityTask } from './api.js';
 import { element as el, chartView, number, sampleDashboard, measureColumns } from './dashboard.js';
 const $ = id => document.getElementById(id);
 const api = new LocalAPI();
-let health=null, dataset=null, currentTask=null, activeJob=null, timer=null, sample=false, busy=false, pairing=false, epoch=0;
+let selection=null,selectionKey='';
+const preferences=()=>({priority:$('model-priority').value,allowDownload:$('allow-download').checked,...($('download-budget').value!==''?{maxDownloadGB:Number($('download-budget').value)}:{})});
+const requestKey=()=>JSON.stringify([$ ('task').value.trim(),dataset?.id,preferences()]);
+let health=null, dataset=null, currentTask=null, activeJob=null, timer=null, sample=false, busy=false, pairing=false, epoch=0, taskLoad=0;
 const views=['workspace','saved','activity','connection'];
 function notify(message, error=false) { $('notice').textContent=message; $('notice').className=error?'error':''; $('notice').hidden=false; }
 function view(name) {
@@ -15,7 +20,7 @@ function updateConnection() {
   $('connection-badge').textContent=api.connected?'● Connected to your Mac':'○ Not connected';
   $('connection-badge').className='badge'+(api.connected?' connected':'');
   $('csv').disabled=!api.connected || busy;
-  $('create-button').textContent=api.connected?(dataset?.kind==='document'?'Read document →':'Create dashboard →'):'Connect your Mac ↗';
+  $('create-button').textContent=api.connected?(selection&&selectionKey===requestKey()?'Run task →':'Review setup →'):'Connect your Mac ↗';
   $('create-button').disabled=busy;
   $('disconnect').disabled=!api.connected;
   $('retry-connection').disabled=!api.connected;
@@ -40,6 +45,8 @@ async function pair(token) {
   } finally {pairing=false;submit.disabled=false;}
 }
 function disconnect() {
+  hideAgentLoop();
+  selection=null;selectionKey='';
   epoch++;api.disconnect();clearTimeout(timer);health=null;dataset=null;currentTask=null;activeJob=null;sample=false;busy=false;
   $('csv').value='';$('pair-token').value='';$('task').value='';$('saved-count').textContent='0';
   for(const id of ['profile','runtime-panel','job-panel','dashboard']) {$(id).hidden=true;$(id).replaceChildren();}
@@ -52,18 +59,26 @@ async function run(action) {
   try {await action();}catch(error){notify(error.message,true);}
 }
 function renderRuntime() {
-  if(!health)return;
-  const rec=health.recommendation, installed=health.models?.find(m=>m.id===rec?.id);
-  const runtime=health.runtimes.ollama;
-  const panel=$('runtime-panel');panel.hidden=false;
-  panel.replaceChildren(el('div',{class:'runtime-row'},el('h2',{},rec?.id || 'Model unavailable'),el('button',{class:'secondary',disabled:!runtime?.ready || !rec || busy || installed,onClick:()=>run(install)},installed?'Installed':runtime?.ready?`Install · ${rec.downloadGB} GB`:'Ollama required')));
-  const setupErrors=Object.values(health.runtimes).map(r=>r.error).filter(Boolean);
-  if(setupErrors.length)panel.append(el('details',{},el('summary',{},'Setup'),setupErrors.map(error=>el('p',{},error))));
-  panel.append(el('details',{},el('summary',{},'Model details'),el('dl',{},el('dt',{},'Memory'),el('dd',{},`${number(health.machine.memoryGB)} GB`),el('dt',{},'Free disk'),el('dd',{},`${number(health.machine.freeDiskGB)} GB`),el('dt',{},'Selection'),el('dd',{},rec?.reason||'Unavailable'))));
+  const panel=$('runtime-panel');panel.hidden=!selection;
+  if(!selection){panel.replaceChildren();return;}
+  const rec=selection.selected;
+  const installed=rec&&health?.models?.some(m=>m.id===rec.id&&m.digest?.replace(/^sha256:/,'')===rec.digest);
+  panel.replaceChildren(el('div',{class:'runtime-row'},el('h2',{},rec?.id||'No compatible model'),rec?el('button',{type:'button',class:'secondary',disabled:busy||installed||!selection.runtime.ready,onClick:()=>run(install)},installed?'Ready':selection.runtime.ready?`Download · ${number(rec.downloadRequiredGB)} GB`:'Runtime setup required'):null));
+  if(selection.runtimeSetup)panel.append(el('p',{},selection.runtimeSetup));
+  const details=el('details',{},el('summary',{},'Setup details'),el('dl',{},el('dt',{},'Task'),el('dd',{},selection.requirements.kind),el('dt',{},'Memory'),el('dd',{},`${number(selection.machine.memoryGB)} GB`),el('dt',{},'Free disk'),el('dd',{},`${number(selection.machine.freeDiskGB)} GB`)));
+  for(const candidate of selection.candidates)details.append(el('h3',{},candidate.id),el('p',{},candidate.reasons.join('. ')),el('p',{},`${candidate.runtime} · ${candidate.memoryBudgetGB} GB memory budget · ${candidate.diskBudgetGB} GB disk budget`),el('p',{},candidate.tuning));
+  const source=selection.catalogSource;
+  details.append(el('p',{},source?.kind==='supabase'&&source.status==='synced'&&Number.isFinite(source.checkedAt)?'Shared catalog · successful read':'Built-in catalog'),el('p',{},selection.selectionBasis));panel.append(details,modelInventoryView(api));
+}
+async function recommend() {
+  const key=requestKey(),generation=epoch;busy=true;updateConnection();notify('Checking your Mac and compatible models…');
+  try {const result=await api.post('/api/models/recommend',{request:$('task').value.trim(),...(dataset?{inputKind:dataset.kind==='document'?'document':'csv'}:{}),preferences:preferences()});if(generation!==epoch||key!==requestKey())return;selection=result;selectionKey=key;renderRuntime();$('notice').hidden=true;}
+  finally{if(generation===epoch){busy=false;updateConnection();renderRuntime();}}
 }
 async function install() {
   if(busy)throw new Error('Wait for the current local job to finish.');
-  const result=await api.post('/api/models/install',{model:health.recommendation.id});
+  if(!selection?.selected||selectionKey!==requestKey())throw new Error('Review setup for this task first.');
+  const result=await api.post('/api/models/install',{model:selection.selected.id});
   await watchJob(result.jobId,null);
 }
 function selectField(id,label,options,placeholder) {
@@ -93,7 +108,7 @@ function renderProfile() {
   $('operation').addEventListener('change',measureFields);measureFields();
 }
 async function importCSV() {
-  const file=$('csv').files[0];if(!file)return;
+  const file=$('csv').files[0];selection=null;selectionKey='';if(!file){dataset=null;$('profile').replaceChildren();$('profile').hidden=true;renderRuntime();updateConnection();return;}
   if(file.size===0)throw new Error('This file is empty. Choose another file.');
   dataset=null;$('profile').hidden=true;$('profile').replaceChildren();
   const generation=epoch;busy=true;updateConnection();notify(`Importing ${file.name}…`);
@@ -102,13 +117,17 @@ async function importCSV() {
 }
 async function createTask(event) {
   event.preventDefault();if(busy)throw new Error('Wait for the current local operation to finish.');if(!api.connected){view('connection');return;}
-  if(!dataset)throw new Error('Choose a file first.');
   if(!$('task').value.trim())throw new Error('Describe what you want to understand.');
-  if(dataset.kind==='document'){const result=await api.post('/api/tasks',{documentId:dataset.id,request:$('task').value.trim()});currentTask=result.taskId;sample=false;await watchJob(result.jobId);return;}
+  if(!selection||selectionKey!==requestKey()){await recommend();return;}
+  if(!selection.selected)throw new Error('No compatible model for this task and machine. Review setup details.');
+  if(!health.models?.some(m=>m.id===selection.selected.id))throw new Error('Download the selected model first.');
+  const modelId=selection.selected.id;
+  if(!dataset){const result=await api.post('/api/tasks',{request:$('task').value.trim(),modelId,preferences:preferences()});currentTask=result.taskId;taskLoad++;selectActivityTask(currentTask);sample=false;await watchJob(result.jobId);return;}
+  if(dataset.kind==='document'){const result=await api.post('/api/tasks',{documentId:dataset.id,request:$('task').value.trim(),modelId,preferences:preferences()});currentTask=result.taskId;taskLoad++;selectActivityTask(currentTask);sample=false;await watchJob(result.jobId);return;}
   const operation=$('operation').value;
   if(!$('group-column').value || (operation!=='count'&&!$('measure-column').value) || (operation==='product_sum'&&!$('measure-column2').value))throw new Error('Choose the measure and group columns before continuing.');
-  const result=await api.post('/api/tasks',{request:$('task').value.trim(),datasetId:dataset.id,measure:{operation,column:$('measure-column').value||undefined,column2:operation==='product_sum'?$('measure-column2').value:undefined},dateColumn:$('date-column').value||null,groupColumn:$('group-column').value,filterColumn:$('filter-column').value||null,negativePolicy:$('negative-policy').value,reuseRecipe:false});
-  sample=false;currentTask=result.taskId;await watchJob(result.jobId);
+  const result=await api.post('/api/tasks',{request:$('task').value.trim(),datasetId:dataset.id,modelId,preferences:preferences(),measure:{operation,column:$('measure-column').value||undefined,column2:operation==='product_sum'?$('measure-column2').value:undefined},dateColumn:$('date-column').value||null,groupColumn:$('group-column').value,filterColumn:$('filter-column').value||null,negativePolicy:$('negative-policy').value,reuseRecipe:false});
+  sample=false;currentTask=result.taskId;taskLoad++;selectActivityTask(currentTask);await watchJob(result.jobId);
 }
 async function watchJob(id,taskId=currentTask) {
   clearTimeout(timer);activeJob=id;busy=true;updateConnection();renderRuntime();
@@ -154,20 +173,28 @@ async function watchEvaluation(taskId,initialJobId) {
   await poll();
 }
 async function loadTask(id) {
-  const generation=epoch;const task=await api.get(`/api/tasks/${encodeURIComponent(id)}`);if(generation!==epoch)return;currentTask=task.id;sample=false;
+  const generation=epoch, load=++taskLoad;const task=await api.get(`/api/tasks/${encodeURIComponent(id)}`);if(generation!==epoch||load!==taskLoad)return;
+  $('dashboard').replaceChildren();$('dashboard').hidden=true;
+  currentTask=task.id;selectActivityTask(currentTask);sample=false;
+  hideAgentLoop();
+  if(task.textResult){renderDocument({...task,documentResult:{...task.textResult,name:'Answer',parts:[],model:task.model}});return;}
   if(task.documentResult){renderDocument(task);return;}
   if(task.dashboard)renderDashboard(task.dashboard,task.evaluation,'',task.fineTune,task.liveReport);else notify(task.error||`Saved task is ${task.status}.`);
 }
 function renderDocument(task) {
   const panel=$('dashboard');panel.hidden=false;$('setup-workbench').hidden=true;$('workspace-heading').hidden=true;$('edit-setup').hidden=false;
   const result=task.documentResult;
-  panel.replaceChildren(el('h2',{id:'dashboard-title'},result.name),el('h3',{},task.request),...result.parts.map(part=>el('section',{class:'document-answer'},result.parts.length>1?el('h3',{},`Excerpt ${part.part} of ${result.parts.length}`):null,el('p',{},part.answer))));
+  panel.replaceChildren(el('h2',{id:'dashboard-title'},result.name),el('h3',{},task.request));
+  if(result.answer)panel.append(el('section',{class:'document-answer'},el('p',{},result.answer)));
+  else panel.append(el('p',{role:'status'},'Whole-document answer unavailable. Excerpt answers are below.'));
+  if(result.parts?.length)panel.append(el('details',{},el('summary',{},'Source excerpts'),...result.parts.map(part=>el('section',{class:'document-answer'},el('h3',{},`Excerpt ${part.part}`),el('p',{},part.answer)))));
   const form=el('form',{class:'followup'},el('input',{required:true,maxlength:2000,'aria-label':'Document question',placeholder:'Ask a follow-up'}),el('button',{type:'submit',class:'primary',disabled:busy},'Ask'));
-  form.addEventListener('submit',event=>{event.preventDefault();run(async()=>{const result=await api.post(`/api/tasks/${encodeURIComponent(task.id)}/followup`,{request:form.querySelector('input').value.trim()});currentTask=result.taskId;await watchJob(result.jobId);});});
-  panel.append(form,el('details',{class:'source-note'},el('summary',{},'Source'),el('p',{},`${result.characters} characters · ${result.model} · Read locally. Excerpts are answered independently; no whole-document aggregation.`)));
+  form.addEventListener('submit',event=>{event.preventDefault();run(async()=>{const result=await api.post(`/api/tasks/${encodeURIComponent(task.id)}/followup`,{request:form.querySelector('input').value.trim()});currentTask=result.taskId;taskLoad++;selectActivityTask(currentTask);await watchJob(result.jobId);});});
+  panel.append(form,el('details',{class:'source-note'},el('summary',{},'Source'),el('p',{},`${result.model?.id||result.model||task.model?.id} · ${result.synthesis?.status==='complete'?'Document synthesis complete':task.textResult?'Local answer':'Excerpt evidence'}${result.characters?' · '+result.characters+' characters':''}`)));
 }
 function renderDashboard(data,evaluation=null,filterValue='',fineTune=null,liveReport=null) {
   const candy=data.source?.measure?.column==='winpercent'&&data.source?.groupColumn==='competitorname';
+  if(candy&&!sample)showAgentLoop(currentTask,api,watchJob);else hideAgentLoop();
   const focusResult=$('setup-workbench').contains(document.activeElement);
   $('setup-workbench').hidden=true;$('workspace-heading').hidden=true;$('edit-setup').hidden=false;
   const panel=$('dashboard');
@@ -187,7 +214,7 @@ function renderDashboard(data,evaluation=null,filterValue='',fineTune=null,liveR
   panel.append(el('details',{class:'source-note'},el('summary',{},'Source and measure'),el('p',{},`${number(source.filteredRows??source.rows)} of ${number(source.rows)} rows · ${measure} · Negative values: ${source.negativePolicy||'as supplied'}. ${sample?'Fictional data included with this preview. No model was run.':`Model: ${data.model?.id||'not reported'} · Configuration: ${data.configuration||'not reported'}.`}`)));
   if(sample)return;
   const followup=el('form',{class:'followup'},el('label',{class:'sr-only',for:'followup'},'Ask a follow-up'),el('input',{id:'followup',required:true,maxlength:2000,placeholder:'What else would you like to understand?'}),el('button',{class:'primary',type:'submit',disabled:busy},'Ask a follow-up →'));
-  followup.addEventListener('submit',event=>{event.preventDefault();run(async()=>{const result=await api.post(`/api/tasks/${encodeURIComponent(currentTask)}/followup`,{request:$('followup').value.trim()});currentTask=result.taskId;await watchJob(result.jobId);});});if(!candy)panel.append(followup);
+  followup.addEventListener('submit',event=>{event.preventDefault();run(async()=>{const result=await api.post(`/api/tasks/${encodeURIComponent(currentTask)}/followup`,{request:$('followup').value.trim()});currentTask=result.taskId;taskLoad++;selectActivityTask(currentTask);await watchJob(result.jobId);});});if(!candy)panel.append(followup);
   const evalPanel=el('section',{class:'evaluation'},el('h3',{},'Reporting evaluation'),el('button',{class:'secondary',disabled:busy,onClick:()=>run(async()=>{const result=await api.post(`/api/tasks/${encodeURIComponent(currentTask)}/evaluate`);await watchEvaluation(currentTask,result.jobId);})},evaluation?'Run evaluation again':'Run reporting experiment'));
   evalPanel.append(el('dl',{},el('dt',{},'Data'),el('dd',{},'Synthetic benchmark'),el('dt',{},'Changes'),el('dd',{},'Prompt only')));
   evalPanel.append(el('details',{},el('summary',{},'Business rules used in this experiment'),el('p',{},'Revenue includes returns and excludes POST/ADJUST entries. Average order value divides net merchandise revenue by distinct order IDs, including return orders. Product rankings use net revenue. Profit needs cost data. Explicit question overrides take precedence. These are authored demo rules.')));
@@ -206,7 +233,7 @@ function renderDashboard(data,evaluation=null,filterValue='',fineTune=null,liveR
   }
 
   const trainingPanel=el('section',{class:'evaluation'},el('h3',{},candy?'Train candy-reporting adapter':'Train reporting adapter'),el('dl',{},el('dt',{},'Data'),el('dd',{},'Synthetic benchmark'),el('dt',{},'Time limit'),el('dd',{},'16 minutes'),el('dt',{},'Requires'),el('dd',{},'MLX model setup')),el('button',{class:'secondary',disabled:busy,onClick:()=>run(async()=>{const result=await api.post(`/api/tasks/${encodeURIComponent(currentTask)}/finetune`,{});await watchJob(result.jobId);})},'Run weight fine-tuning'));
-  if(fineTune)trainingPanel.append(el('p',{},`Untuned: ${fineTune.baseline.score}/${fineTune.total}. Adapter: ${fineTune.adapted.score}/${fineTune.total}. Selected: ${fineTune.selected}. Training and evaluation: ${Math.round(fineTune.elapsedSeconds)} seconds.`),el('p',{class:'muted'},'Experimental reporting adapter; not applied to the CSV dashboard planner.'),el('details',{},el('summary',{},'Weights and measured results'),el('pre',{},JSON.stringify(fineTune,null,2))));
+  if(fineTune)trainingPanel.append(el('p',{},`${fineTune.baselineAdapter?'Previous adapter':'Untuned'}: ${fineTune.baseline.score}/${fineTune.total}. Adapter: ${fineTune.adapted.score}/${fineTune.total}. Selected: ${fineTune.selected}. Training and evaluation: ${Math.round(fineTune.elapsedSeconds)} seconds.`),el('p',{class:'muted'},'Experimental reporting adapter; not applied to the CSV dashboard planner.'),el('details',{},el('summary',{},'Weights and measured results'),el('pre',{},JSON.stringify(fineTune,null,2))));
   const reportPanel=el('section',{class:'evaluation'},el('h3',{},candy?'Candy report':'Retail report'),el('details',{},el('summary',{},'Supported data and rules'),el('p',{},candy?'FiveThirtyEight · 85 entries including coin comparison items · CC BY 4.0. Win rate measures head-to-head preferences. Sugar and price are relative percentiles, not grams or dollars. Questions can select chocolate or fruity entries; the dashboard filter above does not change this report.':'Whole-file retail reports: revenue, average order value, order count, or top products. No date or country filters. Default columns: InvoiceNo, StockCode, Quantity, UnitPrice. Rows missing these fields are excluded. Retail policy excludes POST, ADJUST, DOT, D, M, C2, BANK CHARGES, AMAZONFEE, B and CRUK. Samples and unrecognized codes remain included.')));
   const reportForm=el('form',{class:'followup'},el('input',{id:'adapter-question',required:true,maxlength:2000,placeholder:candy?'Which chocolate candies are most popular?':'What is our average order value?','aria-label':'Fine-tuned reporting question'}),el('button',{class:'primary',type:'submit',disabled:busy},'Run trained adapter'));
   reportForm.addEventListener('submit',event=>{event.preventDefault();run(async()=>{const result=await api.post(`/api/tasks/${encodeURIComponent(currentTask)}/report`,{request:$('adapter-question').value.trim(),...(candy?{subset:$('candy-subset').value}:{})});await watchJob(result.jobId);});});
@@ -233,9 +260,10 @@ async function renderActivity() { /* Live monitor is owned by the activity obser
 document.querySelectorAll('[data-view]').forEach(button=>button.addEventListener('click',()=>{view(button.dataset.view);run(async()=>{if(button.dataset.view==='saved')await renderSaved();if(button.dataset.view==='activity')await renderActivity();});}));
 $('connection-link').addEventListener('click',()=>view('connection'));
 $('edit-setup').addEventListener('click',()=>{$('setup-workbench').hidden=false;$('workspace-heading').hidden=false;$('edit-setup').hidden=true;$('task').focus();});
+for(const id of ['task','model-priority','allow-download','download-budget'])$(id).addEventListener('input',()=>{selection=null;selectionKey='';renderRuntime();updateConnection();});
 $('task-form').addEventListener('submit',event=>run(()=>createTask(event)));
 $('csv').addEventListener('change',()=>run(importCSV));
-$('sample-button').addEventListener('click',()=>{sample=true;renderDashboard(sampleDashboard());$('dashboard').scrollIntoView({block:'start',behavior:'smooth'});});
+$('sample-button').addEventListener('click',()=>{taskLoad++;sample=true;selectActivityTask(null);renderDashboard(sampleDashboard());$('dashboard').scrollIntoView({block:'start',behavior:'smooth'});});
 $('pair-form').addEventListener('submit',event=>{event.preventDefault();run(()=>pair($('pair-token').value));});
 $('retry-connection').addEventListener('click',()=>run(async()=>{health=await api.get('/api/health');updateConnection();renderRuntime();notify('Your local companion is reachable.');}));
 $('disconnect').addEventListener('click',disconnect);

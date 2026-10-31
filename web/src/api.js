@@ -1,8 +1,14 @@
 export const LOOPBACK = 'http://127.0.0.1:4173';
 const activityListeners = new Set();
 let activityClient = null;
+let selectedTaskId = null;
+export function selectActivityTask(taskId) {
+  selectedTaskId = taskId || null;
+  publishActivity({ type: 'selection', taskId: selectedTaskId });
+}
 export function observeLocalActivity(listener) {
   activityListeners.add(listener);
+  listener({ type: 'selection', taskId: selectedTaskId });
   if (activityClient?.connected) {
     listener({ type: 'connected' });
     activityClient.startActivity();
@@ -44,7 +50,7 @@ export class LocalAPI {
   }
   disconnect() {
     this.stopActivity();
-    if (activityClient === this) { activityClient = null; publishActivity({ type: 'disconnected' }); }
+    if (activityClient === this) { activityClient = null; selectedTaskId = null; publishActivity({ type: 'disconnected' }); }
     this.token = ''; this.connected = false;
     for (const controller of this.controllers) controller.abort();
     this.controllers.clear();

@@ -1,6 +1,6 @@
 import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
-const files = new Set(['index.html', 'src/app.js', 'src/api.js', 'src/activity.js', 'src/activity-state.js', 'src/dashboard.js', 'src/styles.css', 'favicon.svg', 'assets/halloween/pumpkin.png', 'assets/halloween/ghost.png', 'assets/halloween/pumpkin-icon-v2.png']);
+const files = new Set(['index.html', 'src/app.js', 'src/model-inventory.js', 'src/agent-loop.js', 'src/api.js', 'src/activity.js', 'src/activity-state.js', 'src/dashboard.js', 'src/styles.css', 'favicon.svg', 'assets/halloween/pumpkin.png', 'assets/halloween/ghost.png', 'assets/halloween/pumpkin-icon-v2.png']);
 const types = { html: 'text/html', js: 'text/javascript', css: 'text/css', svg: 'image/svg+xml', png: 'image/png' };
 const server = createServer(async (req, res) => {
   const path = new URL(req.url, 'http://localhost').pathname;

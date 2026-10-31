@@ -6,7 +6,7 @@ A person sits at a kitchen table in daylight, opening a work file and wanting a 
 
 ## Layout
 
-A compact navigation rail and a central analytics workspace. Lead with the question and selected CSV. Group required measure/comparison settings; disclose optional date, filter and negative-value settings. Results lead with metrics and a dominant trend chart. Retail reports and model improvement are separate disclosures below the result. Keep agent receipts in optional details, with concise device activity visible. Collapse navigation and stack panels on small screens. No explanatory rail, taglines or repeated page labels.
+A compact navigation rail and a central analytics workspace. Lead with the question and selected CSV. Group required measure/comparison settings; disclose optional date, filter and negative-value settings. Results lead with metrics and a dominant trend chart. Retail reports and model improvement are separate disclosures below the result. Keep agent receipts in optional details, with compact task activity beside the question and result. Stack activity below the result on narrow screens. Collapse navigation and stack panels on small screens. No explanatory rail, taglines or repeated page labels.
 
 ## Color tokens
 
@@ -18,7 +18,7 @@ System sans-serif with 14–16 px body text, 12 px labels and a 32 px main headi
 
 ## States and copy
 
-Use actual connection and job states: downloading, queued, running, evaluating, ready, failed and cancelled. Only fictional sample data carries a sample badge. Never invent progress or model results. Keep native field labels and actionable errors. Use layout and disclosure to explain workflow boundaries; preserve data provenance and training limits as structured facts. Device activity is global, not implicitly scoped to the displayed dashboard. Stable control IDs, semantic current-navigation state and safe text rendering serve users, developers and agents.
+Use actual connection and job states: downloading, queued, running, evaluating, ready, failed and cancelled. Only fictional sample data carries a sample badge. Never invent progress or model results. Keep native field labels and actionable errors. Use layout and disclosure to explain workflow boundaries; preserve data provenance and training limits as structured facts. Workspace Activity follows the selected task. The separate Monitor and explicitly labelled device queue counts remain global. Stable control IDs, semantic current-navigation state and safe text rendering serve users, developers and agents.
 
 ## Motion and accessibility
 
