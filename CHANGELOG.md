@@ -1,3 +1,9 @@
+# 0.4.1.0
+
+- Lead the analytics workspace with data-derived insights and meaningful filtered comparisons.
+- Keep reporting-model training evidence collapsed and distinguish it from dashboard calculations.
+- Keep photo workflows behind the experimental query option.
+
 # Changelog
 
 ## [0.4.0.0] - 2026-10-31
