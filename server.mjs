@@ -143,22 +143,23 @@ const server = createServer(async (req, res) => {
         const s = await state(),
           d = JSON.parse(await device.read());
         return send(200, {
+          // A key set to null is a removed record (the Project actor has no delete); every list skips those.
           datasets: Object.entries(s)
-            .filter(([k]) => k.startsWith("dataset:"))
+            .filter(([k, v]) => k.startsWith("dataset:") && v)
             .map(([, v]) => v),
           tasks: Object.entries(s)
-            .filter(([k]) => k.startsWith("task:"))
+            .filter(([k, v]) => k.startsWith("task:") && v)
             .map(([, v]) => v),
           jobs: Object.entries(s)
-            .filter(([k]) => k.startsWith("job:"))
+            .filter(([k, v]) => k.startsWith("job:") && v)
             .map(([, v]) => v),
-          loops:Object.entries(s).filter(([k])=>k.startsWith("loop:")).map(([,v])=>v),
-          tunings: Object.entries(s).filter(([k]) => k.startsWith("tuning:")).map(([, v]) => v),
-          saved: Object.entries(s).filter(([k]) => k.startsWith("saved:")).map(([, v]) => v).sort((a, b) => b.savedAt - a.savedAt),
+          loops:Object.entries(s).filter(([k, v])=>k.startsWith("loop:") && v).map(([,v])=>v),
+          tunings: Object.entries(s).filter(([k, v]) => k.startsWith("tuning:") && v).map(([, v]) => v),
+          saved: Object.entries(s).filter(([k, v]) => k.startsWith("saved:") && v).map(([, v]) => v).sort((a, b) => b.savedAt - a.savedAt),
           // Monitor inputs: Relay connection state, recorded loop hand-offs, and how many records of each kind the Project actor holds.
           relay: { ready: relayStatus.ready, error: relayStatus.error ?? null, agents: relayStatus.agents ?? [] },
-          handoffs: Object.entries(s).filter(([k]) => k.startsWith("handoff:")).map(([, v]) => v),
-          projectKeys: Object.keys(s).reduce((acc, k) => { const p = k.includes(":") ? k.slice(0, k.indexOf(":")) : k; acc[p] = (acc[p] ?? 0) + 1; return acc; }, {}),
+          handoffs: Object.entries(s).filter(([k, v]) => k.startsWith("handoff:") && v).map(([, v]) => v),
+          projectKeys: Object.entries(s).reduce((acc, [k, v]) => { if (!v) return acc; const p = k.includes(":") ? k.slice(0, k.indexOf(":")) : k; acc[p] = (acc[p] ?? 0) + 1; return acc; }, {}),
           recipe: s.recipe ?? null,
           device: d,
         });

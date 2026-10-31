@@ -81,7 +81,7 @@ export function relayView(state = {}) {
   const messages = [];
   for (const job of list(state.jobs)) {
     if (!job.viaRelay) continue;
-    const base = {jobId: job.id, work: job.kind, taskId: job.taskId || null};
+    const base = {jobId: job.id, work: job.kind, taskId: job.taskId || null, seeded: job.seeded === true};
     const crosses = [`job ${short(job.id)}`, `work ${job.kind}`];
     if (list(job.payload?.scores).length) crosses.push('development scores: ' + job.payload.scores.map(s => `r${s.round} ${Math.round((s.development_accuracy ?? 0) * 1000) / 10}%`).join(', '));
     messages.push({...base, id: `req:${job.id}`, at: stamp(job.createdAt), from: 'Planner', to: 'Evaluator', kind: 'request', messageId: job.requestMessageId || null, receiptId: job.receivedMessageId || null,

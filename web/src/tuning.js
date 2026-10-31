@@ -47,6 +47,7 @@ function render(){
   const head=el('div',{class:'runtime-row'},el('div',{},el('h2',{},`Autonomous tuner · ${t.recipe}`),el('p',{class:'status',role:'status','data-state':t.status},el('span',{class:'dot','aria-hidden':'true'}),statusText)),
     el('div',{class:'dashboard-tools'},running?el('button',{type:'button',class:'secondary',onClick:async()=>{try{await api.post(`/api/tuning/${encodeURIComponent(t.id)}/cancel`);}catch(e){panel.append(el('p',{role:'alert'},e.message));}}},'Cancel tuning'):null));
   panel.replaceChildren(head);
+  if(t.seeded)panel.append(el('p',{class:'status','data-state':'queued'},el('span',{class:'dot','aria-hidden':'true'}),'Seeded sample records, written by scripts/seed-demo.mjs. Not a live run on this Mac.'));
   if(t.request)panel.append(el('p',{},el('strong',{},'Task: '),t.request));
   panel.append(el('p',{class:'muted'},`${t.backbone||'Recipe'} · ${t.counts?`${t.counts.train} train / ${t.counts.development} development / ${t.counts.heldout} held-out crops`:'splits reported after the first round'} · every round is a durable Terse job; kill the companion and restart, and the run continues from the next round.`));
   const first=t.rounds?.[0],best=t.best;
