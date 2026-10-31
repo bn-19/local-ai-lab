@@ -13,7 +13,7 @@
 
 ## Design
 
-Impeccable product register, light paper/pine palette. Removed taglines, explainer sidebar, future-recipe promotion, helper paragraphs, repeated chart labels and footer copy. The workspace is task → CSV → column controls → dashboard. Necessary form labels remain. Model details, source/measure provenance and data-access facts use disclosure controls. Sample outputs remain explicitly labeled. Second measure input appears only for multiplication.
+Impeccable product register, light paper/pine palette. Removed taglines, explainer sidebar, future-recipe promotion, helper paragraphs, repeated chart labels and footer copy. The workspace is task → optional file → setup review → explicit run; CSV inputs add column controls before the dashboard. Necessary form labels remain. Model details, source/measure provenance and data-access facts use disclosure controls. Sample outputs remain explicitly labeled. Second measure input appears only for multiplication.
 
 ## Backend boundary
 
@@ -65,6 +65,12 @@ Design guidance: Impeccable and [Unslop](https://github.com/heydamir/unslop) by 
 
 Workspace-only Halloween switch uses a generated pumpkin icon, sliding toggle and reduced-motion-aware artwork transitions. Monitor replaces Activity with persisted job steps, elapsed time, history-based ETA and an explicitly partial cloud API-fee estimate. Removed the public Halloween demo shortcut. Setup collapses behind Edit setup after results; optional controls and workflows use disclosures. Document input UI needs the updated local companion; existing CSV endpoints remain unchanged.
 
-This frontend release intentionally excludes the in-progress model-inventory and agent-loop modules/hooks. They remain in the shared working copy with all uncommitted backend work. Do not reset that checkout to the release. Monitor timing/token estimates appear only when the companion supplies the corresponding telemetry; historical missing usage is not fabricated.
+The earlier design release excluded model-inventory and agent-loop hooks; version 0.3.0.0 integrates their frozen owner handoff with the companion contracts. Do not reset the shared checkout to the release. Monitor timing/token estimates appear only when the companion supplies the corresponding telemetry; historical missing usage is not fabricated.
 
 Release verification: 14 frontend tests and static build on the isolated release snapshot. No new browser session. Artwork source notes are in web/assets/halloween/ATTRIBUTION.md; generated-icon provenance is in GENERATED.md.
+
+## Version 0.3.0.0 task-first integration
+
+Local frontend now calls POST /api/models/recommend before execution, displays actual recommendation/hardware/setup evidence, offers explicit model download and preferences, and sends selected modelId with new tasks. No-file text/code tasks are supported by the additive backend contract. Saved tasks retain their model through backend followups. Runtime/model-inventory hooks remain preserved. Document rendering prefers top-level answer with excerpt disclosure; the short Webb PDF summary/follow-up passed the documented acceptance; general long-PDF synthesis remains unsupported by the evidence. Monitor consumes actual persisted job.events when available, with System attribution rather than invented agent roles.
+
+Integrated verification: 31 backend tests, 25 frontend tests, syntax checks and the 13-file public build passed. Browser acceptance above applies only to its named earlier revision; no browser acceptance of this combined revision is implied.

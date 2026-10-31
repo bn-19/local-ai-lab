@@ -8,7 +8,7 @@ The current saved job state is prominent. Recorded steps and Run details use nat
 
 The committed `/api/state` contract provides tasks, jobs and device state. Older companions expose the latest saved job snapshot and message IDs, not a complete stage history. The UI labels historical snapshots as recorded, shows no invented agent roles, and never treats a sent message as a recipient receipt. Missing optional fields yield a minimal panel.
 
-Optional `task.selection`, `job.events` and `loops[].events` are consumed when supplied by the companion. Their backend implementation is a separate owner/change, not included in this PR. Selection is System evidence. Actual role events may identify Planner/Evaluator/Trainer. Loop receipts require a matching handoff message ID, sender, recipient and transport. Local-durable is explicitly different from Relay. Built-in catalog remains the default; there is no inferred Supabase sync.
+Optional `task.selection`, `job.events` and `loops[].events` are consumed when supplied by the companion. Version 0.3.0.0 includes their frozen backend owner handoff. Older companions may omit them. Selection is System evidence. Actual role events may identify Planner/Evaluator/Trainer. Loop receipts require a matching handoff message ID, sender, recipient and transport. Local-durable is explicitly different from Relay. Built-in catalog remains the default; there is no inferred Supabase sync.
 
 No raw prompts, scratchpad, document bodies or result payloads are selected for the feed. Short persisted action/decision summaries render as text; unknown backend error bodies are not copied into Activity. Actual results and existing error/cancel controls remain in the workspace. Model identity/digest/runtime and completed job runtime appear when recorded.
 
@@ -24,4 +24,4 @@ Unmeasured without separate approval: rendered narrow viewport, keyboard/screen-
 
 ## Integration handoff
 
-Based on `bf15a61`. Reviewed frontend owner's activity-only handoff: the Monitor's optional recorded events, signature deduplication and disconnect cleanup are retained. Workspace event projection is replaced with the scoped projection. No unrelated dirty app, PDF, training or model-selection files were copied from the shared checkout.
+Based on `bf15a61`. Reviewed frontend owner's activity-only handoff: the Monitor's optional recorded events, signature deduplication and disconnect cleanup are retained. Workspace event projection is replaced with the scoped projection. The expanded 0.3.0.0 release integrates only named, hash-verified backend, PDF, catalog and frontend owner handoffs in an isolated checkout. It preserves Activity task selection and stale-response guards. Private state, models and unrelated dirty files are excluded.
