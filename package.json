@@ -1,6 +1,6 @@
 {
   "name": "local-ai-lab",
-  "version": "0.5.0.0",
+  "version": "0.5.0.1",
   "private": true,
   "description": "Local CSV analytics with a bounded local model, Agent Relay handoffs and durable Terse jobs",
   "type": "module",
