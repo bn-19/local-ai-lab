@@ -6,13 +6,13 @@ Describe what you need, review a model that fits your Mac, and turn a CSV into a
 
 Built for **Haunted Hacks 2026**.
 
-[Download for Mac](https://github.com/bn-19/local-ai-lab/releases/download/v0.5.0.0/Local-Lab-Mac-Installer.zip) · [Try the CSV demo](#try-the-csv-demo-on-your-mac) · [Open the hosted app](https://local-lab-bn-19s-projects.vercel.app) · [Architecture](#architecture)
+[Download for Mac](https://github.com/bn-19/local-ai-lab/releases/download/v0.5.0.1/Local-Lab-Mac-Installer.zip) · [Try the CSV demo](#try-the-csv-demo-on-your-mac) · [Open the hosted app](https://local-lab-bn-19s-projects.vercel.app) · [Architecture](#architecture)
 
 ## Try the CSV demo on your Mac
 
 **Judges: start here.** You need an **Apple Silicon Mac (M1 or later), macOS 14+, and an internet connection**. The demonstrated machine is an M5 MacBook Pro with 32 GB memory; the app checks model compatibility and shows download and memory requirements before you run it. Git, Homebrew and administrator privileges are not required.
 
-**[Download the Mac installer ZIP · v0.5.0.0](https://github.com/bn-19/local-ai-lab/releases/download/v0.5.0.0/Local-Lab-Mac-Installer.zip)** · [Release notes and checksums](https://github.com/bn-19/local-ai-lab/releases/tag/v0.5.0.0)
+**[Download the Mac installer ZIP · v0.5.0.1](https://github.com/bn-19/local-ai-lab/releases/download/v0.5.0.1/Local-Lab-Mac-Installer.zip)** · [Release notes and checksums](https://github.com/bn-19/local-ai-lab/releases/tag/v0.5.0.1)
 
 ### 1. Install, start and connect
 
