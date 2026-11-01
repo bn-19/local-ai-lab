@@ -91,8 +91,8 @@ export function statisticalInsightsView(data) {
   const chart=(data.charts||[]).find(c=>c.kind==='bar'&&c.title!=='Rows by group');
   const points=(chart?.points||[]).filter(p=>typeof p.value==='number'&&Number.isFinite(p.value)).slice().sort((a,b)=>b.value-a.value);
   const items=[];
-  const percent=measure.column==='winpercent'&&measure.operation==='mean';
-  if(points.length)items.push(element('li',{},element('strong',{},String(points[0].label)),` has the highest shown ${percent?'average matchup win rate':measure.operation==='count'?'row count':'value'}: ${number(points[0].value)}${percent?'%':''}.`));
+  const percent=source.unit==='percent';
+  if(points.length)items.push(element('li',{},element('strong',{},String(points[0].label)),` has the highest shown ${measure.operation==='count'?'row count':measure.operation==='mean'?'average '+(measure.column||'value'):'value'}: ${number(points[0].value)}${percent?'%':''}.`));
   if(points.length>1)items.push(element('li',{},`The gap between the two highest shown groups is ${number(points[0].value-points[1].value)}${percent?' percentage points':' in the selected measure'}.`));
   const trend=(data.charts||[]).find(c=>c.kind==='line');
   const periods=(trend?.points||[]).filter(p=>typeof p.value==='number'&&Number.isFinite(p.value));

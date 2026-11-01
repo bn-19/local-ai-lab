@@ -2,9 +2,9 @@ import Foundation
 
 enum RuntimePhase {
     case inspecting
+    case needsUpdate
     case needsInstall
     case installing
-    case needsRelayConsent
     case starting
     case ready
     case stopped

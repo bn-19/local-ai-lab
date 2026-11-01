@@ -2,13 +2,17 @@
 
 This SwiftPM package builds the native Apple Silicon Local Lab host. Its SwiftUI setup window installs the exact packaged app source, locked npm dependencies, pinned Node runtime when needed, and the complete pinned Ollama runtime under `~/Library/Application Support/Local Lab/Runtime`. Installation never downloads model weights. The user separately approves model downloads in the embedded local interface.
 
-The app asks before creating the user's Agent Relay workspace. It then starts the existing launcher without a Terminal window. That launcher remains the owner of the Terse Device queue, Ollama, and the local backend. The native process helper places bootstrap and launcher leaders in app-owned process groups; cancellation and shutdown are bounded and fail closed. Private logs and any diagnostic-only cleanup record are mode 0600 in `~/Library/Application Support/Local Lab/Host Logs`.
+The app starts its existing launcher in local-only mode without a Terminal window or cloud account. Relay is an optional command-line integration; existing credentials do not enable it. That launcher remains the owner of the Terse Device queue, Ollama, and the local backend. The native process helper places bootstrap and launcher leaders in app-owned process groups; cancellation and shutdown are bounded and fail closed. Private logs and any diagnostic-only cleanup record are mode 0600 in `~/Library/Application Support/Local Lab/Host Logs`.
 
 The WKWebView navigates only to `http://127.0.0.1:4173/app` and its subpaths. A document-start listener waits for the exact packaged frontend's ready event before submitting the private token to the existing pairing form. The token is never placed in a URL, clipboard, native log, or persistent web store. File uploads use a native open panel. There is no JavaScript-to-native command bridge.
 
 [Native CSV, model-download and restart acceptance evidence](../docs/MAC_APP_ACCEPTANCE.md).
 
-## Try the native Mac app
+## Current development build
+
+See [local-first setup and source-update behavior](../docs/LOCAL_FIRST.md). An older installed runtime is updated only after an explicit **Update Local Runtime** action; private files, weights and durable state are preserved. Matching dependency locks/runtime pins are required.
+
+## Published v0.6.0.0 (historical setup)
 
 Use an Apple Silicon Mac running macOS 14 or later. [Download **Local-Lab-Mac-App.zip · v0.6.0.0**](https://github.com/bn-19/local-ai-lab/releases/download/v0.6.0.0/Local-Lab-Mac-App.zip), extract it, and move **Local Lab.app** to Applications. This is a separate artifact from the stable command-script installer. It is currently ad-hoc signed and **not notarized**; a downloaded copy may be blocked by Gatekeeper. Review its source and origin before using macOS's per-app Open/Open Anyway action. Do not disable Gatekeeper or remove quarantine globally. A second physical Mac and the downloaded/quarantined installation flow have not been tested.
 

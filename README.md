@@ -4,7 +4,9 @@
 
 Describe what you need, review a model that fits your Mac, and turn a CSV into a useful dashboard. Local Lab brings model setup, analysis and task-specific adaptation into one workflow, while keeping your files and model weights on your computer.
 
-Built for **Haunted Hacks 2026**.
+Originally built for **Haunted Hacks 2026**, now under continued development.
+
+**Local-first development build:** [account-free setup, optional Relay and general CSV validation](docs/LOCAL_FIRST.md). The published v0.6.0.0 app below predates this change and still has its original Relay setup. Use a current-source preview for the new workflow.
 
 [Download the Mac app](https://github.com/bn-19/local-ai-lab/releases/download/v0.6.0.0/Local-Lab-Mac-App.zip) · [Try the CSV demo](#try-the-csv-demo-on-your-mac) · [Native setup guide](macos/README.md) · [Architecture](#architecture)
 
@@ -95,7 +97,7 @@ One measured candy-adapter experiment improved **26/33 → 29/33** on authored, 
 | Component | Its job in Local Lab |
 | --- | --- |
 | **Terse Durable Actors** | Persist tasks, job attempts, selected configurations and results. A Device actor owns the queue so heavy local jobs run one at a time. |
-| **Agent Relay** | Coordinate Planner, Evaluator and Trainer work using correlated requests and receipts. Recorded status distinguishes Relay delivery from an explicit local durable fallback. |
+| **Agent Relay (optional)** | Explicitly enabled coordination integration. Default startup and tasks use the local durable queue without a cloud account or connection. |
 | **Supabase** | Share a read-only catalog of reviewed model identities and versions. Private files, task contents and weights are not stored in that catalog. |
 | **Ollama / MLX** | Run supported models locally; MLX provides the separate Apple Silicon reporting-adapter training path. |
 | **DuckDB** | Import the CSV and execute validated calculation templates. The app does not execute model-written SQL, Python or shell. |

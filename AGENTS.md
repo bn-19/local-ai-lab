@@ -8,8 +8,8 @@ The native Mac app embeds the real local web workspace; preserved root design fi
 
 ## Implementation
 
-- Prefer small working slices and meaningful checks. Establish one Relay → local worker → Terse result before expanding infrastructure.
-- Use the sponsor-supported SDK versions; verify docs against installed packages. Do not combine Terse CLI/SDK generations.
+- Prefer small working slices and meaningful checks. Establish local work through the Terse Device queue; Relay is optional and disabled by default.
+- Pin compatible CLI/SDK versions and verify behavior against installed packages. Do not combine Terse CLI/SDK generations.
 - Keep one authoritative active-job queue in the Terse Device actor. All local inference/training, including controller calls, obtains a reservation.
 - Never hold a device reservation while waiting for another queued job. Store large artifacts locally and persist references/results in actors.
 - Supabase is optional for shared catalogs/published results, not a second active-job queue.
@@ -26,6 +26,7 @@ Explain the specific proposed session and possible interruption. Keep approved a
 
 - Never commit .env values, tokens, private inputs, downloaded models, adapters, checkpoints or generated exports. Use ignored local directories.
 - Preserve original inputs; exports go to a user-chosen location. Deleting weights and forgetting task data are different operations.
+- Saved credentials never imply cloud opt-in. Require explicit Relay enablement; default execution and startup require no cloud account.
 - Keep private content out of hosted Relay/controller prompts and traces. Describe actual local/cloud behavior and OS sandbox limitations.
 - Honor dataset/model licenses and record attribution, revisions, transformations and split provenance.
 - A new private GitHub repository was requested; never make it public or invite collaborators without a specific instruction.
