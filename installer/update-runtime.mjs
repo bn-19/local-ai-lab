@@ -1,9 +1,9 @@
-import {readFile,writeFile,mkdir,mkdtemp,rename,rm,lstat} from 'node:fs/promises';
+import {readFile,writeFile,mkdir,mkdtemp,rename,rm,lstat,realpath} from 'node:fs/promises';
 import path from 'node:path';
 import {createHash,randomUUID} from 'node:crypto';
 import {execFile} from 'node:child_process';
 import {promisify,parseArgs,isDeepStrictEqual} from 'node:util';
-import {pathToFileURL} from 'node:url';
+import {fileURLToPath} from 'node:url';
 import {assertPortsFree} from './processes.mjs';
 const exec=promisify(execFile);
 const mutable=['.local-lab','.durable-actors','node_modules','web/node_modules'];
@@ -61,7 +61,7 @@ export async function updateRuntime({runtime,bundle},{afterTransfer=async()=>{},
   throw error;
  }finally{if(!committed&&!rollbackFailed)await rm(stage,{recursive:true,force:true});}
 }
-if(process.argv[1]&&import.meta.url===pathToFileURL(process.argv[1]).href){
+if(process.argv[1]&&await realpath(process.argv[1]).catch(()=>null)===await realpath(fileURLToPath(import.meta.url))){
  const controller=new AbortController();
  const cancel=()=>controller.abort(Error('Source update cancelled'));
  process.on('SIGTERM',cancel);process.on('SIGINT',cancel);

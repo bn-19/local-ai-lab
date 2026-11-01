@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {mkdtemp,mkdir,writeFile,readFile,cp,rm,stat} from 'node:fs/promises';
+import {mkdtemp,mkdir,writeFile,readFile,cp,rm,stat,symlink} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import path from 'node:path';
 import {createHash} from 'node:crypto';
@@ -40,4 +40,11 @@ test('invalid source or changed dependencies never modify the installed data',as
  const f=await fixture(t);await writeFile(path.join(f.bundle,'source.tar.gz'),'corrupt');await assert.rejects(updateRuntime(f),/hash mismatch/);
  assert.equal(await readFile(path.join(f.runtime,'.local-lab/models/weight'),'utf8'),'keep weights');
  const g=await fixture(t);await writeFile(path.join(g.runtime,'package-lock.json'),'changed');await assert.rejects(updateRuntime(g),/full installation/);assert.equal(await readFile(path.join(g.runtime,'.durable-actors/saved'),'utf8'),'saved task');
+});
+
+test('CLI updater executes through a symlink/resource path',async t=>{
+ const f=await fixture(t),link=path.join(path.dirname(f.runtime),'update-entry.mjs');
+ await symlink(new URL('../update-runtime.mjs',import.meta.url),link);
+ execFileSync(process.execPath,[link,'--runtime',f.runtime,'--bundle',f.bundle],{stdio:'pipe'});
+ assert.equal(JSON.parse(await readFile(path.join(f.runtime,'.local-lab/installer/release-manifest.json'))).source.commit,'a'.repeat(40));
 });
