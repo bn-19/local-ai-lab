@@ -290,3 +290,6 @@ halloweenSwitch.addEventListener('change',()=>{
   setHalloweenMode(halloweenSwitch.checked);
   try {localStorage.setItem('local-lab-halloween',String(halloweenSwitch.checked));} catch { /* Theme still works without storage. */ }
 });
+// Native hosts wait for this event before submitting the in-memory pairing token.
+// It fires only after the form's preventDefault handler is installed.
+window.dispatchEvent(new window.Event('local-lab-web-ready'));
