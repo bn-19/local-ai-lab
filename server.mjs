@@ -3,6 +3,7 @@ import {imageType,visionAction} from './lib/vision-policy.mjs';
 import {recommendation,checkInstall} from './lib/model-selection.mjs';
 import {modelInventory} from './lib/model-inventory.mjs';
 import { extractDocument, documentLimit } from './lib/documents.mjs';
+import { addWebAssets } from './lib/web-assets.mjs';
 import { createServer } from "node:http";
 import {
   readFile,
@@ -10,7 +11,6 @@ import {
   mkdir,
   rename,
   rm,
-  readdir,
 } from "node:fs/promises";
 import { createWriteStream } from "node:fs";
 import { pipeline } from "node:stream/promises";
@@ -59,33 +59,7 @@ const publicFiles = new Map([
   ["/styles.css", ["styles.css", "text/css; charset=utf-8"]],
 ]);
 // Explicit inventory of built frontend assets only. No dynamic filesystem path capability.
-async function addWeb(dir, prefix) {
-  try {
-    for (const e of await readdir(dir, { withFileTypes: true })) {
-      if (e.isSymbolicLink()) continue;
-      const file = path.join(dir, e.name),
-        url = prefix + e.name;
-      if (e.isDirectory()) await addWeb(file, url + "/");
-      else if (/\.(html|js|css|svg|png|ico|woff2)$/.test(e.name)) {
-        const ext = path.extname(e.name),
-          mime = {
-            ".html": "text/html",
-            ".js": "text/javascript",
-            ".css": "text/css",
-            ".svg": "image/svg+xml",
-            ".png": "image/png",
-            ".ico": "image/x-icon",
-            ".woff2": "font/woff2",
-          }[ext];
-        publicFiles.set(url, [file, mime]);
-        if (e.name === "index.html") publicFiles.set(prefix, [file, mime]);
-      }
-    }
-  } catch (e) {
-    if (e.code !== "ENOENT") throw e;
-  }
-}
-await addWeb(new URL("./web/dist/",import.meta.url).pathname, "/app/");
+await addWebAssets(publicFiles,import.meta.url,"/app/");
 async function jsonBody(req) {
   let body = "";
   for await (const chunk of req) {
