@@ -92,5 +92,5 @@ try {
   if(token)serialized=serialized.split(token).join('[REDACTED]');
   try{await output.writeFile(serialized);}finally{await output.close();}
 }
-console.log(JSON.stringify({status:report.status,checks:report.checks.length,taskId:owned?.taskId??null}));
+console.log(JSON.stringify({status:report.status,passedChecks:report.checks.filter(c=>c.status==='passed').length,observedChecks:report.checks.filter(c=>c.status==='observed').length,notChecked:report.checks.filter(c=>c.status==='not_checked').length,taskId:owned?.taskId??null}));
 process.exitCode=report.status==='passed'?0:report.status==='incomplete'?2:1;
