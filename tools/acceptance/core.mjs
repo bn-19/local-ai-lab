@@ -74,7 +74,10 @@ export function client(base,token,fetcher=fetch) {
   base=localBase(base);
   return async(route,body,headers={})=>{
     assert.match(route,/^\/api\/[a-zA-Z0-9/-]+$/);
-    const response=await fetcher(base+route,{method:body===undefined?'GET':'POST',redirect:'error',signal:AbortSignal.timeout(15000),headers:{Authorization:`Bearer ${token}`,...(body===undefined?{}:{'Content-Type':'application/json'}),...headers},body:body===undefined?undefined:Buffer.isBuffer(body)?body:JSON.stringify(body)});
+    // Task creation awaits the actual Relay send. Never retry this POST: a lost
+    // response may still have created a durable task and job.
+    const timeoutMs=route==='/api/tasks'&&body!==undefined?60000:15000;
+    const response=await fetcher(base+route,{method:body===undefined?'GET':'POST',redirect:'error',signal:AbortSignal.timeout(timeoutMs),headers:{Authorization:`Bearer ${token}`,...(body===undefined?{}:{'Content-Type':'application/json'}),...headers},body:body===undefined?undefined:Buffer.isBuffer(body)?body:JSON.stringify(body)});
     // Do not echo server errors: they can contain credentials or unrelated user data.
     assert.ok(response.ok,`Local API request failed (${response.status}) at ${route}`);
     return response.json();

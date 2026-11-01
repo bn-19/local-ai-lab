@@ -6,6 +6,8 @@ Describe what you need, review a model that fits your Mac, and turn a CSV into a
 
 Built for **Haunted Hacks 2026**.
 
+**Native Mac preview:** [setup and testing guide](macos/README.md) · [review PR #11](https://github.com/bn-19/local-ai-lab/pull/11). The preview embeds the local workspace and manages its own services without Vercel or a Terminal window. It is ad-hoc signed and not notarized; the stable download below remains the command-script helper.
+
 [Download for Mac](https://github.com/bn-19/local-ai-lab/releases/download/v0.5.0.1/Local-Lab-Mac-Installer.zip) · [Try the CSV demo](#try-the-csv-demo-on-your-mac) · [Open the hosted app](https://local-lab-bn-19s-projects.vercel.app) · [Architecture](#architecture)
 
 ## Try the CSV demo on your Mac

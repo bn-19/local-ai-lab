@@ -48,3 +48,13 @@ Native app/helper builds and the standalone headless check executable passed, co
 The exact-commit package passed ZIP/checksum verification, embedded source revision/hash checks, arm64 executable checks and `codesign --verify --deep --strict`. No credentials, model weights, private inputs or dependency directories were included in its source archive.
 
 The candidate is **ad-hoc signed and not notarized**. It is not an App Sandbox build. Runtime/model setup and Relay coordination use network services; model inference and CSV processing run locally. No new weight fine-tuning was run for this acceptance test. MLX training and broader workflows retain their separate setup and validation requirements.
+
+## Cloud-developed acceptance runner
+
+The published Codex Cloud environment produced the four files under [`tools/acceptance`](../tools/acceptance/README.md), originally at cloud commit `0a5b7feefad0e2afd20322a60c87b02752146a46`. Cloud could not push through its GitHub proxy, so its exact patch was exported, checksum-verified (`cdd7c6cdcdb4f105e0bd82688187f99317617befcbeb5fbd30fa6daffb756622`), reviewed and integrated locally. Seven portable unit tests passed; they are not local-model evidence.
+
+The real runner then passed **eight API checks** against the native app's own installed runtime on November 1, 2026. It authenticated locally, verified the installed model digest and public CSV hash, created a real queued model job, checked its validated plan and positive inference measurements, compared all three dashboard/filter cases with independent CSV arithmetic, and reopened the saved task. Task: `097cfec1-06bd-4229-ad19-9a86885dfa32`. Job: `07865967-28e1-42c2-b5aa-4d4b4baf2de1`.
+
+That run took **49.574 seconds** from runner start to report completion, including real Relay coordination; Ollama reported **5,784 ms model time, 149 output tokens and 780 ms load time**. This is one run, with the model already installed. The native window displayed the same saved result and an empty Device queue afterward. Normal Quit again removed the owned services, ports and session markers.
+
+The first local invocation lacked sandbox loopback access and was incomplete. The next invocation's 15-second task-creation request timed out while Relay was working; its public-data job was subsequently confirmed ready. The runner now allows 60 seconds for that POST and never automatically retries it, because a lost response may still have created durable work. A fresh run passed. The API runner deliberately leaves native readiness, build provenance and full process-restart checks to the separate native acceptance above.

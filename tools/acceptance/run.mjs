@@ -59,7 +59,7 @@ try {
   assert.equal(task.model?.id,selected.id);assert.equal(digest(task.model?.digest),digest(selected.digest));
   assert.ok(task.plan&&typeof task.plan.explanation==='string'&&task.plan.explanation.length>0,'Missing actual validated model plan');
   assert.equal(task.plan.operation,definition.measure.operation);assert.equal(task.plan.groupColumn,definition.groupColumn);assert.equal(task.plan.dateColumn,null);
-  assert.ok(task.measurement?.tokens>0&&Number.isFinite(task.measurement.elapsedMs),'Missing actual inference measurements');
+  assert.ok(task.measurement?.tokens>0&&Number.isFinite(task.measurement.elapsedMs)&&task.measurement.elapsedMs>0,'Missing actual inference measurements');
   report.modelOutput={validatedPlan:task.plan,measurement:task.measurement,rawText:'Not exposed by API',binding:task.model};
   check('Actual terminal model job output',report.modelOutput);
   report.calculations=[];
