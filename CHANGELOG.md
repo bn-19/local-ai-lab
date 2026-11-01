@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.6.0.0] - 2026-11-01
+
+### Added
+- Run Local Lab in a native Mac window with guided runtime setup, explicit coordination consent, automatic local pairing and a native file picker.
+- Start, cancel and stop owned local services from the app while preserving saved tasks, files and model downloads across restarts.
+- Reproduce real CSV dashboards with a cloud-developed acceptance runner that checks installed model identity, local inference, independent statistics and saved results.
+
+### Changed
+- Lead the judge walkthrough with the native Mac download and document its measured CSV workflow and distribution limitations.
+
+### Fixed
+- Keep repeated Quit requests behind confirmed process cleanup and require readiness from the app-owned launcher before opening its workspace.
+
+
 ## [0.5.0.1] - 2026-11-01
 
 ### Fixed

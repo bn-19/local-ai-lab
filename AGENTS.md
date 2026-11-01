@@ -2,9 +2,9 @@
 
 ## Product and scope
 
-Read README.md and START_HERE.md. Current demo recipes are candy recognition and data analytics. Local Lab's broader purpose is task-driven local model selection, evaluation and tuning. Audio and image generation are future directions.
+Read README.md and START_HERE.md. The verified demo is CSV analytics and business reporting; vision remains experimental. Local Lab's broader purpose is task-driven local model selection, evaluation and tuning. Audio and image generation are future directions.
 
-The current web surface is explicitly a design preview. Do not relabel simulated data or progress as live. Every new integration must have truthful ready, missing-dependency, error and cancellation states.
+The native Mac app embeds the real local web workspace; preserved root design files are historical previews. Do not relabel simulated data or progress as live. Every new integration must have truthful ready, missing-dependency, error and cancellation states.
 
 ## Implementation
 

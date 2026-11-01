@@ -8,9 +8,9 @@ The WKWebView navigates only to `http://127.0.0.1:4173/app` and its subpaths. A 
 
 [Native CSV, model-download and restart acceptance evidence](../docs/MAC_APP_ACCEPTANCE.md).
 
-## Try the native preview
+## Try the native Mac app
 
-Use an Apple Silicon Mac running macOS 14 or later. Download the **Local-Lab-Mac-App.zip** supplied with the native preview/release, extract it, and move **Local Lab.app** to Applications. This is a separate artifact from the stable command-script installer. It is currently ad-hoc signed and **not notarized**; a downloaded copy may be blocked by Gatekeeper. Review its source and origin before using macOS's per-app Open/Open Anyway action. Do not disable Gatekeeper or remove quarantine globally. A second physical Mac and the downloaded/quarantined installation flow have not been tested.
+Use an Apple Silicon Mac running macOS 14 or later. [Download **Local-Lab-Mac-App.zip · v0.6.0.0**](https://github.com/bn-19/local-ai-lab/releases/download/v0.6.0.0/Local-Lab-Mac-App.zip), extract it, and move **Local Lab.app** to Applications. This is a separate artifact from the stable command-script installer. It is currently ad-hoc signed and **not notarized**; a downloaded copy may be blocked by Gatekeeper. Review its source and origin before using macOS's per-app Open/Open Anyway action. Do not disable Gatekeeper or remove quarantine globally. A second physical Mac and the downloaded/quarantined installation flow have not been tested.
 
 1. Open **Local Lab.app** and select **Install Runtime**. Initial setup downloads verified runtime components and locked dependencies; it does not download a model.
 2. Select **Create Workspace and Start** to consent to your own Relay workspace and agent identities. A temporary service error can be retried. The app opens and pairs its own local workspace automatically.
@@ -18,7 +18,7 @@ Use an Apple Silicon Mac running macOS 14 or later. Download the **Local-Lab-Mac
 4. Check the dashboard's **85 entries / 50.32%**, chocolate filter **37 / 60.92%**, and non-chocolate filter **48 / 42.14%**. These are preference scores, not sales.
 5. Reopen the result from **Saved tasks**, then use **Quit Local Lab**. The app stops its own services and retains local files, tasks and models for the next launch. No Terminal window or hosted Vercel page is required.
 
-The app reuses an existing runtime under `~/Library/Application Support/Local Lab/Runtime`; replacing the `.app` does not automatically update that runtime. The preview has no automatic runtime upgrade/migration. Preserve existing work and seek a reviewed migration before changing that folder. Do not run the command-script installation and native app simultaneously: they use the same local ports.
+The app reuses an existing runtime under `~/Library/Application Support/Local Lab/Runtime`; replacing the `.app` does not automatically update that runtime. This release has no automatic runtime upgrade/migration. Preserve existing work and seek a reviewed migration before changing that folder. Do not run the command-script installation and native app simultaneously: they use the same local ports.
 
 ## Build and test
 

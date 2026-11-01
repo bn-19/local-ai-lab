@@ -6,29 +6,23 @@ Describe what you need, review a model that fits your Mac, and turn a CSV into a
 
 Built for **Haunted Hacks 2026**.
 
-**Native Mac preview:** [setup and testing guide](macos/README.md) · [review PR #11](https://github.com/bn-19/local-ai-lab/pull/11). The preview embeds the local workspace and manages its own services without Vercel or a Terminal window. It is ad-hoc signed and not notarized; the stable download below remains the command-script helper.
-
-[Download for Mac](https://github.com/bn-19/local-ai-lab/releases/download/v0.5.0.1/Local-Lab-Mac-Installer.zip) · [Try the CSV demo](#try-the-csv-demo-on-your-mac) · [Open the hosted app](https://local-lab-bn-19s-projects.vercel.app) · [Architecture](#architecture)
+[Download the Mac app](https://github.com/bn-19/local-ai-lab/releases/download/v0.6.0.0/Local-Lab-Mac-App.zip) · [Try the CSV demo](#try-the-csv-demo-on-your-mac) · [Native setup guide](macos/README.md) · [Architecture](#architecture)
 
 ## Try the CSV demo on your Mac
 
 **Judges: start here.** You need an **Apple Silicon Mac (M1 or later), macOS 14+, and an internet connection**. The demonstrated machine is an M5 MacBook Pro with 32 GB memory; the app checks model compatibility and shows download and memory requirements before you run it. Git, Homebrew and administrator privileges are not required.
 
-**[Download the Mac installer ZIP · v0.5.0.1](https://github.com/bn-19/local-ai-lab/releases/download/v0.5.0.1/Local-Lab-Mac-Installer.zip)** · [Release notes and checksums](https://github.com/bn-19/local-ai-lab/releases/tag/v0.5.0.1)
+**[Download the native Mac app ZIP · v0.6.0.0](https://github.com/bn-19/local-ai-lab/releases/download/v0.6.0.0/Local-Lab-Mac-App.zip)** · [Release notes and checksums](https://github.com/bn-19/local-ai-lab/releases/tag/v0.6.0.0)
 
 ### 1. Install, start and connect
 
-1. Extract the **entire ZIP**, then double-click **Install.command**. It installs Local Lab into `~/Applications/Local Lab`. This is an **unsigned command-script helper**, not a signed or notarized Mac app. If macOS blocks it, follow the [Mac installation guide](installer/INSTALL.md); do not disable system security settings.
-2. In the installed folder, double-click **Start.command**. On first start, it asks permission to create your own Agent Relay workspace for coordination. Keep this Terminal window open while using the app.
-3. Open **[the local workspace](http://127.0.0.1:4173/app/)** once startup finishes. Click **Connect your Mac**, then paste your pairing token and click **Connect to my Mac**. To display the token, open a second Terminal window and run:
+1. Extract **Local-Lab-Mac-App.zip** and move **Local Lab.app** to Applications. This first native release is **ad-hoc signed and not notarized**. macOS may block a downloaded copy; review its source and origin before using macOS's per-app Open/Open Anyway action. Do not disable system security. See the [native setup guide](macos/README.md) for limitations.
+2. Open **Local Lab.app** and choose **Install Runtime**. It installs verified runtime components and locked dependencies under `~/Library/Application Support/Local Lab/Runtime`. No model weights are downloaded at this step.
+3. Choose **Create Workspace and Start** to approve your own Agent Relay workspace and coordination identities. The app opens and pairs its embedded local workspace automatically. No Terminal window or Vercel page is needed.
 
-   ```sh
-   cat "$HOME/Applications/Local Lab/.local-lab/pairing-token"
-   ```
+Model weights are a separate, explicitly approved download. First setup takes longer than subsequent runs and depends on your connection and selected model. The native app reuses its existing runtime; automatic runtime upgrades/migration are not supported. See [measured native acceptance](docs/MAC_APP_ACCEPTANCE.md) for the tested workflow and boundaries.
 
-   Keep this token private. If you chose a different installation folder, use that path instead.
-
-The installer includes the local web interface and companion. The [hosted interface](https://local-lab-bn-19s-projects.vercel.app) can also connect to your running companion; the hosted site alone does not run models. Model weights are a separate, explicitly approved download. First setup takes longer than subsequent runs and depends on your connection and selected model.
+Prefer the command-script helper? [Installer v0.5.0.1](https://github.com/bn-19/local-ai-lab/releases/download/v0.5.0.1/Local-Lab-Mac-Installer.zip) remains available with its [installation and manual-pairing guide](installer/INSTALL.md). It is a separate installation. Do not run both simultaneously because they use the same local ports.
 
 ### 2. Upload the real CSV and run an analysis
 
@@ -49,11 +43,11 @@ The installer includes the local web interface and companion. The [hosted interf
 
 4. Click **Review setup**. Review the recommended model and its requirements. If it is missing, click **Download** and wait until it is **Ready**, then click **Run task**. For reference, the reviewed Qwen3 4B download is about 2.5 GB; your actual recommendation is shown in the app.
 5. Inspect the generated charts, statistics and **Activity** panel. With all groups included, expect **85 entries** and an **average matchup win rate of 50.32%**. Set the `chocolate` filter to `1`: expect **37 entries** and **60.92%**. Set it to `0`: expect **48 entries** and **42.14%**. These are historical preference scores, not sales figures.
-6. Open **Saved tasks** and reopen the result to check persistence. You can also toggle **Halloween mode**. When finished, press **Control-C** in the launcher Terminal or open the installed **Stop.command**; saved work and models remain on your Mac.
+6. Open **Saved tasks** and reopen the result to check persistence. You can also toggle **Halloween mode**. When finished, choose **Quit Local Lab**; its owned local services stop and saved work and models remain on your Mac.
 
 This walkthrough runs a real local model and calculates results from the uploaded CSV. **Open sample** is a separate fictional preview and does not run a model. Fine-tuning is optional, requires the separate [MLX setup](docs/WEIGHT_FINETUNING.md), and is not needed for this dashboard.
 
-**Troubleshooting:** Keep the launcher Terminal open. If connecting fails, confirm startup completed, use the local workspace URL above, and check the token from your own installation. If a required port is occupied, the launcher reports it instead of stopping another app. [Full installation and recovery guide →](installer/INSTALL.md)
+**Troubleshooting:** Wait for native setup to finish. Temporary Relay errors can be retried; partial workspace setup is preserved. If a port is occupied, Local Lab reports it rather than stopping another app. Private diagnostics are under `~/Library/Application Support/Local Lab/Host Logs`; they may contain credentials and should not be published. [Native setup and limitations →](macos/README.md)
 
 ![Local Lab analyzing the candy dataset in the production Halloween interface](docs/assets/analytics-dashboard.png)
 
@@ -105,7 +99,7 @@ One measured candy-adapter experiment improved **26/33 → 29/33** on authored, 
 | **Supabase** | Share a read-only catalog of reviewed model identities and versions. Private files, task contents and weights are not stored in that catalog. |
 | **Ollama / MLX** | Run supported models locally; MLX provides the separate Apple Silicon reporting-adapter training path. |
 | **DuckDB** | Import the CSV and execute validated calculation templates. The app does not execute model-written SQL, Python or shell. |
-| **Vercel** | Serve the interface. CSV uploads go directly to the paired local companion, not through a Vercel API. |
+| **Native Mac app / optional Vercel UI** | The Mac app embeds its locally served interface and manages its owned services. The optional hosted UI connects directly to a paired local companion; CSVs do not pass through a Vercel API. |
 
 Activity exposes recorded work and supporting evidence. A completed pipeline step is not automatically treated as a successful model evaluation.
 
@@ -113,9 +107,10 @@ Activity exposes recorded work and supporting evidence. A completed pipeline ste
 
 ```mermaid
 flowchart TB
-    Vercel["Vercel · frontend assets"] --> Browser
+    Vercel["Optional Vercel · frontend assets"] --> Browser
     subgraph Mac["On your Mac"]
-        Browser["Browser interface"] -->|"Paired localhost API"| Companion["Local companion"]
+        Native["Native Mac app · embedded local interface"] -->|"Owned localhost API"| Companion["Local companion"]
+        Browser["Optional browser interface"] -->|"Paired localhost API"| Companion
         Companion --> Models["Ollama / MLX · local models"]
         Companion --> Data["DuckDB · selected CSV files"]
         Companion --> State["Terse · Project and Device actors"]
@@ -128,7 +123,7 @@ Raw inputs, outputs, adapters and credentials stay in ignored local storage. Rel
 
 ## Quick start
 
-**For developers installing from source.** Judges can use the [Mac installer walkthrough above](#try-the-csv-demo-on-your-mac) instead of these commands.
+**For developers installing from source.** Judges can use the [Mac app walkthrough above](#try-the-csv-demo-on-your-mac) instead of these commands.
 
 The supported runtime is **Apple Silicon macOS** with **Node.js 22+** and enough memory and disk for the selected model. The demonstrated machine is an M5 MacBook Pro with 32 GB unified memory. Model downloads and initial runtime setup require a network connection.
 
