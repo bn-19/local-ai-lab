@@ -1,14 +1,14 @@
-# Local-first development build
+# Local-first operation
 
-The current development build starts and runs without a cloud account. The published **v0.6.0.0** app predates these changes; use a preview built from this branch until a new release is published.
+**v0.7.0.0** starts and runs without a cloud account. [Download the Mac app](https://github.com/bn-19/local-ai-lab/releases/download/v0.7.0.0/Local-Lab-Mac-App.zip).
 
 ## Native Mac setup
 
-Open the preview's `Local Lab.app`. First installation still needs internet access for verified runtimes/dependencies and separately approved model downloads. After those components are installed, CSV analysis and supported local model tasks require no cloud account or internet connection.
+Open `Local Lab.app`. First installation still needs internet access for verified runtimes/dependencies and separately approved model downloads. After those components are installed, CSV analysis and supported local model tasks require no cloud account or internet connection.
 
 - A fresh installation offers **Install Runtime**, then starts and pairs automatically.
 - An older installation offers **Update Local Runtime**. This verifies the bundled source and preserves `.local-lab` (including weights and private files), `.durable-actors` (saved tasks/queue), and installed dependencies. It retains previous source and unknown root files in a sibling `Runtime.source-backup-*` folder. That folder is not a complete duplicate of the private data.
-- Updates run only with the runtime stopped and matching dependency locks/runtime pins. Dependency changes require a separate installer. Build/hash/dependency failures leave the existing installation untouched; cancellation or errors during transfer roll back. A force kill or power loss during an update may require manual recovery from retained folders—do not delete them.
+- Updates run only with the runtime stopped and matching dependency graphs/runtime pins. Startup and updates share an exclusive local lock. Dependency changes require a separate installer. Build/hash/dependency failures leave the existing installation untouched; cancellation or errors during transfer roll back. A force kill or power loss during an update may require manual recovery from retained folders—do not delete them.
 - Choose **Quit Local Lab** to stop owned services. Saved tasks and models remain local.
 
 Build a preview from a committed checkout on Apple Silicon with Xcode/Swift installed:
@@ -62,4 +62,4 @@ Using the public [UCI Bike Sharing](https://archive.ics.uci.edu/dataset/275/bike
 | Device actor | Duplicate delivery, exclusive reservation, stale completion fencing, cancellation-before-delivery and alarms passed |
 | Native source updater | Preservation, hash/dependency failures, cancellation and post-transfer rollback passed |
 
-The native update/reopen check is documented with the preview evidence. Historical hackathon acceptance reports describe older versions and remain unchanged.
+The native update preserved all three existing saved tasks and all nine model files with unchanged sizes/inodes; it paired without a cloud setup prompt and completed the same non-candy CSV workflow through the local queue. The updater CLI resource-path regression and rollback checks passed. Historical hackathon acceptance reports describe older versions and remain unchanged.

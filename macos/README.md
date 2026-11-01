@@ -8,21 +8,16 @@ The WKWebView navigates only to `http://127.0.0.1:4173/app` and its subpaths. A 
 
 [Native CSV, model-download and restart acceptance evidence](../docs/MAC_APP_ACCEPTANCE.md).
 
-## Current development build
+## Install or update v0.7.0.0
 
-See [local-first setup and source-update behavior](../docs/LOCAL_FIRST.md). An older installed runtime is updated only after an explicit **Update Local Runtime** action; private files, weights and durable state are preserved. Matching dependency locks/runtime pins are required.
+[Download Local-Lab-Mac-App.zip](https://github.com/bn-19/local-ai-lab/releases/download/v0.7.0.0/Local-Lab-Mac-App.zip), extract it and move **Local Lab.app** to Applications. Requires Apple Silicon and macOS 14+. It is ad-hoc signed and **not notarized**; review its origin before using macOS's per-app approval flow. Do not disable Gatekeeper globally. The quarantined-download flow and a second physical Mac remain untested.
 
-## Published v0.6.0.0 (historical setup)
+1. On first launch select **Install Runtime**. This downloads verified runtime components and locked dependencies, but no model weights. No cloud account is required.
+2. For an existing runtime, select **Update Local Runtime**. The source-only updater preserves `.local-lab`, `.durable-actors` and installed dependencies, retains previous source/unknown root files, and rolls back on errors or cancellation. It refuses dependency/runtime changes and concurrent startup. Version-only metadata changes are supported.
+3. The app starts and pairs automatically. Follow [the CSV walkthrough](../README.md#2-upload-any-supported-csv), approve the model's separate download and select **Run task**.
+4. Reopen a result from **Saved tasks**, then use **Quit Local Lab**. No Terminal or hosted page is required.
 
-Use an Apple Silicon Mac running macOS 14 or later. [Download **Local-Lab-Mac-App.zip · v0.6.0.0**](https://github.com/bn-19/local-ai-lab/releases/download/v0.6.0.0/Local-Lab-Mac-App.zip), extract it, and move **Local Lab.app** to Applications. This is a separate artifact from the stable command-script installer. It is currently ad-hoc signed and **not notarized**; a downloaded copy may be blocked by Gatekeeper. Review its source and origin before using macOS's per-app Open/Open Anyway action. Do not disable Gatekeeper or remove quarantine globally. A second physical Mac and the downloaded/quarantined installation flow have not been tested.
-
-1. Open **Local Lab.app** and select **Install Runtime**. Initial setup downloads verified runtime components and locked dependencies; it does not download a model.
-2. Select **Create Workspace and Start** to consent to your own Relay workspace and agent identities. A temporary service error can be retried. The app opens and pairs its own local workspace automatically.
-3. Follow [the CSV upload, prompt and field selections](../README.md#2-upload-the-real-csv-and-run-an-analysis). Approve the recommended model's separate download, wait for **Ready**, then select **Run task**.
-4. Check the dashboard's **85 entries / 50.32%**, chocolate filter **37 / 60.92%**, and non-chocolate filter **48 / 42.14%**. These are preference scores, not sales.
-5. Reopen the result from **Saved tasks**, then use **Quit Local Lab**. The app stops its own services and retains local files, tasks and models for the next launch. No Terminal window or hosted Vercel page is required.
-
-The app reuses an existing runtime under `~/Library/Application Support/Local Lab/Runtime`; replacing the `.app` does not automatically update that runtime. This release has no automatic runtime upgrade/migration. Preserve existing work and seek a reviewed migration before changing that folder. Do not run the command-script installation and native app simultaneously: they use the same local ports.
+[Local-first setup, optional Relay, measured results and recovery boundaries](../docs/LOCAL_FIRST.md). Source backups are not complete copies of private data; mutable directories remain in the active runtime. Do not delete retained folders after a force kill/power loss during an update. A stale transition lock is not proof its owner is dead: inspect the original app/session or restart the Mac, then recover manually. No updater steals a lock or kills a process by saved PID. Do not run another installation on the same local ports.
 
 ## Build and test
 

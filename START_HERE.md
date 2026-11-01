@@ -1,6 +1,6 @@
 # Start here
 
-Local Lab helps a person choose a compatible local model and use it for a concrete task. The current focus is **general CSV analysis and local model tasks on a Mac without a cloud account**. Start with the [local-first development guide](docs/LOCAL_FIRST.md); published v0.6.0.0 predates that workflow.
+Local Lab helps a person choose a compatible local model and use it for a concrete task. The current focus is **general CSV analysis and local model tasks on a Mac without a cloud account**. Start with the [local-first guide](docs/LOCAL_FIRST.md) and v0.7.0.0 download.
 
 ## Reviewing the project
 
