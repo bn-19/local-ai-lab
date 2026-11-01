@@ -5,11 +5,11 @@ Local Lab helps a person choose a compatible local model and use it for a concre
 ## Reviewing the project
 
 1. Read the [README](README.md) for the product, actual production screenshots and demo results.
-2. Follow [Try the CSV demo on your Mac](README.md#try-the-csv-demo-on-your-mac) to download the native Mac app, complete its setup and reproduce the candy dashboard. The app starts and pairs its own local companion; the hosted site is optional and is not a cloud inference service.
+2. Follow [Try the CSV demo on your Mac](README.md#try-the-csv-demo-on-your-mac) to download the native Mac app, complete its setup and reproduce the public Bike Sharing dashboard or analyze your own CSV. The app starts and pairs its own local companion; the hosted site is optional and is not a cloud inference service.
 3. Inspect [the local API](docs/LOCAL_API_CONTRACT.md), [Activity evidence](docs/ACTIVITY.md) and [the agent loop](docs/AGENT_LOOP_AND_STORAGE.md) for how work is performed and saved.
 4. Use [the run guide](docs/IMPLEMENTATION.md) and [dataset sources](docs/DATASETS.md) to reproduce an analysis.
 
-The main candy demo uses 85 historical preference entries. Rankings and comparisons are calculated from that CSV. Reporting-adapter evaluation scores are a separate measurement of instruction interpretation, not dashboard values.
+The historical candy demo uses 85 preference entries. Rankings and comparisons are calculated from that CSV. Reporting-adapter evaluation scores are a separate measurement of instruction interpretation, not dashboard values.
 
 ## Contributing
 
