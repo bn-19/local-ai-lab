@@ -15,5 +15,5 @@ test('saved training comparison shows measured values and retains baseline witho
 
 test('statistical takeaways derive from the selected values, not training scores',()=>{
  const {document,window}=parseHTML('<html><body></body></html>');globalThis.document=document;globalThis.Node=window.Node;
- try {const view=statisticalInsightsView({source:{measure:{operation:'mean',column:'winpercent'}},charts:[{kind:'bar',points:[{label:'A',value:31},{label:'B',value:45}]}]});assert.match(view.textContent,/B has the highest shown average matchup win rate: 45%/);assert.match(view.textContent,/14 percentage points/);assert.doesNotMatch(view.textContent,/26 \/ 33/);assert.match(statisticalInsightsView({charts:[]}).textContent,/No comparable values/);}finally{delete globalThis.document;delete globalThis.Node;}
+ try {const view=statisticalInsightsView({source:{measure:{operation:'mean',column:'winpercent'}},charts:[{kind:'bar',points:[{label:'A',value:31},{label:'B',value:45}]}]});assert.match(view.textContent,/B has the highest shown average winpercent: 45/);assert.match(view.textContent,/14 in the selected measure/);assert.doesNotMatch(view.textContent,/26 \/ 33/);assert.match(statisticalInsightsView({charts:[]}).textContent,/No comparable values/);}finally{delete globalThis.document;delete globalThis.Node;}
 });

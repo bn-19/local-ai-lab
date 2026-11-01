@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.7.0.0] - 2026-11-01
+
+### Added
+- Start and run local model tasks without a cloud account; use Relay only after explicit opt-in.
+- Update compatible installed runtime source while preserving private files, model weights and durable tasks, with source verification and rollback.
+- Inspect local queue execution in Activity and use the same CSV controls across datasets.
+
+### Fixed
+- Recover pending Relay-waiting jobs through the local durable queue and prevent late delivery from reviving cancelled work.
+- Execute the native updater through resolved resource paths and exclude concurrent startup/source updates with a shared runtime lock.
+
+### Changed
+- Lead setup documentation with the account-free Mac download and a verified non-candy CSV example.
+- Keep dataset-specific adapter experiments behind explicit experimental opt-in.
+
+
 ## [0.6.0.0] - 2026-11-01
 
 ### Added

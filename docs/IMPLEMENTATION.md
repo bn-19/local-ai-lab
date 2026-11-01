@@ -1,3 +1,5 @@
+> Current development startup and routing are documented in [Local-first](LOCAL_FIRST.md). Relay setup/routing and timings below describe the earlier hackathon version. Local-first execution disables cloud coordination by default and preserves the same Terse queue and saved state.
+
 # Working analytics implementation
 
 The static starter is now backed by a loopback Node API, DuckDB, Ollama, Agent Relay 15.0.1, and Terse 0.14.9. Bun 1.4.4 is pinned locally. Published package APIs were checked against installed code; event-organizer endorsement of these versions has not been independently confirmed.

@@ -1,10 +1,10 @@
-# Local API contract (implementation in progress)
+# Local API contract
 
 Backend binds 127.0.0.1:4173; same-origin local UI is primary. Public Vercel UI must show disconnected until explicitly connected. No cloud proxying of CSVs. All JSON errors `{error:string}`. No endpoint executes model code.
 
-Planned v1 routes (frontend can implement against these; verify health before claiming live):
-- GET /api/health → `{status:'ready'|'setup_required', machine:{chip,memoryGB,freeDiskGB}, runtimes:{ollama:{ready,version},terse:{ready},relay:{ready,error?}}, models:[{id,size,digest}], recommendation:{id,downloadGB,reason}}`
-- GET /api/state → `{datasets:[],tasks:[],jobs:[],recipe:null|object}` (durable state flattened for UI).
+Implemented v1 routes (selected response fields shown; verify health before claiming live):
+- GET /api/health → `{status:'ready'|'setup_required', machine:{chip,memoryGB,freeDiskGB}, runtimes:{ollama:{ready,version?},terse:{ready},relay:{enabled,ready,mode:'local'|'relay',error?}}, models:[], recommendation:null|object, catalog}`. Ready depends on local Ollama and Terse, not Relay; Relay is disabled by default.
+- GET /api/state → `{datasets:[],tasks:[],jobs:[],loops:[],recipe:null|object,device:object}` (durable state flattened for UI).
 - POST /api/datasets, raw CSV body, Content-Type text/csv, X-Filename encoded filename → `{id,name,bytes,rows,columns:[{name,type,missing}],importMs}`. Streams into ignored app storage; never sends data to Relay.
 - POST /api/models/install JSON `{model:'qwen3:4b'}` → `{jobId}`. Approval button initiates download.
 - POST /api/tasks JSON `{request,datasetId,measure:{operation:'sum'|'mean'|'count'|'product_sum',column?:string,column2?:string},dateColumn:string|null,groupColumn:string,filterColumn:string|null,negativePolicy:'include'|'exclude',reuseRecipe?:boolean}` → `{taskId,jobId}`. Explicit column choices clarify ambiguous schema. Count counts rows; product_sum multiplies two numeric columns per row. Negative policy applies to selected numeric measures.
@@ -17,7 +17,7 @@ Planned v1 routes (frontend can implement against these; verify health before cl
 
 Dashboard: `{kpis:[{label,value}],charts:[{title,kind:'bar'|'line',points:[{label,value}]}],filters:[{column,values:string[]}],source:{name,rows,filteredRows,measure,negativePolicy,dateColumn,groupColumn},model:{id,digest},configuration:string}`. Render labels with textContent, SVG nodes or safe framework escaping. At least group bar + date trend when date exists; absent dates need second useful grouping/chart, never fabricate a timeline.
 
-Pending security integration: same-origin mutating requests only; local health may be readable for connectivity, but no wildcard CORS private endpoints. Hosted UI initially links to local URL. Pairing/authenticated cross-origin support must be implemented explicitly before enabling it.
+The pairing and authenticated origin checks below apply to these routes, including health; private endpoints do not allow wildcard CORS. The native app embeds the local interface and pairs automatically. The optional hosted UI requires explicit pairing.
 
 ## Pairing contract (v1)
 All `/api/*` reads and writes require `Authorization: Bearer <token>`. Backend creates `.local-lab/pairing-token` mode 0600; operator reads locally and enters into hosted UI (memory only). Never put token in URL or bundle. Set `LOCAL_LAB_ORIGIN` to one exact stable HTTPS deployment origin. Backend permits that Origin and its own `http://127.0.0.1:4173`; unknown Origin/Host rejected. OPTIONS permits Authorization, Content-Type, X-Filename and GET/POST only. Vary: Origin, no-store. Direct CLI requests without Origin still need token. Health is protected too. User gesture starts fetch with targetAddressSpace:'loopback'; browser support/permission failures must show actionable disconnected state. Same-origin /app/ uses same pairing token input. No cloud proxy.
@@ -26,8 +26,10 @@ All `/api/*` reads and writes require `Authorization: Bearer <token>`. Backend c
 
 - POST /api/tasks/:id/report → `{jobId}`; trained-adapter whole-file report. Body: `request`, optional validated `mapping`, `excludedProductCodes`, `adapterJobId`. Result persists in `job.result` and `task.liveReport`. See LIVE_REPORTING.md; no date/country filters.
 
-- POST /api/tasks/:id/agentloop → `{jobId}`; conditional candy improvement team with persistent decisions and verified Relay handoffs. GET /api/state adds `loops`.
+- POST /api/tasks/:id/agentloop → `{jobId}`; conditional candy improvement team with persistent decisions and local durable handoffs by default. Verified Relay handoffs are optional when Relay is explicitly enabled and ready; transport failures fall back locally. GET /api/state includes `loops`. Historical reporting controls require the UI opt-in `?experimental=reporting`; these reviewed recipes do not establish arbitrary-CSV training support.
 - GET /api/models/inventory → actual model/adapter sizes, dependencies, selection, last use, retention policy, and labeled first-download estimates. Read-only; no automatic deletion.
+
+Jobs use the same durable Device queue regardless of transport. New local jobs expose `transport:'local-durable'`; optional Relay jobs use `transport:'relay'` and fall back to the local queue under the same job ID when delivery is unavailable. Queued historical Relay jobs recover locally when Relay is disabled. Saved credentials alone never enable Relay. See [local-first operation](LOCAL_FIRST.md) for explicit developer opt-in and recovery details.
 
 ### Task-aware setup (additive)
 

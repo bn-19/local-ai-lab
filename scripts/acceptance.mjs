@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { readFile, writeFile } from "node:fs/promises";
 import { api, token } from "./api-client.mjs";
-const origin = "https://local-lab-bn-19s-projects.vercel.app";
+const origin = process.env.LOCAL_LAB_ACCEPTANCE_ORIGIN ?? "http://127.0.0.1:4173";
 const csv = await readFile(".local-lab/sources/bike/day.csv", "utf8");
 const rows = csv
   .trim()
@@ -51,6 +51,13 @@ for (let n = 0; n < 180; n++) {
   await new Promise((r) => setTimeout(r, 1000));
 }
 assert.equal(job.status, "ready", JSON.stringify(job));
+if(process.env.LOCAL_LAB_EXPECT_LOCAL==='1'){
+ assert.equal(job.viaRelay,false);
+ assert.equal(job.transport,'local-durable');
+ assert.equal(job.requestMessageId,undefined);
+ const localHealth=await api('health');
+ assert.equal(localHealth.runtimes.relay.enabled,false);
+}
 const task = await api("tasks/" + created.taskId);
 assert.equal(task.dashboard.kpis[0].value, expected);
 assert.equal(task.dashboard.charts.length, 2);

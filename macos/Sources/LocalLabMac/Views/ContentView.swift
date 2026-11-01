@@ -17,17 +17,17 @@ struct ContentView: View {
                     primaryAction: { Task { await runtime.installRuntime() } },
                     secondaryTitle: nil, secondaryAction: nil, busy: false
                 )
-            case .installing:
-                setup("Installing local components", "arrow.down.circle", busy: true, cancel: true)
-            case .needsRelayConsent:
+            case .needsUpdate:
                 SetupView(
-                    title: "Create your Relay workspace?",
-                    detail: "This creates a workspace and Planner, Evaluator, and Trainer identities in Agent Relay. CSV contents, model weights, and private answers stay on this Mac. You can retry safely if setup is interrupted.",
-                    symbol: "person.3.sequence",
-                    primaryTitle: "Create Workspace and Start",
-                    primaryAction: { Task { await runtime.startRuntime(authorizeRelay: true) } },
+                    title: "Update your local workspace",
+                    detail: "Install the source bundled with this app. Saved tasks, private files and model weights are preserved; previous source is retained for recovery. No cloud account is needed. Dependency changes require a separate installation.",
+                    symbol: "arrow.triangle.2.circlepath",
+                    primaryTitle: "Update Local Runtime",
+                    primaryAction: { Task { await runtime.updateRuntime() } },
                     secondaryTitle: nil, secondaryAction: nil, busy: false
                 )
+            case .installing:
+                setup("Installing local components", "arrow.down.circle", busy: true, cancel: true)
             case .starting:
                 setup("Starting your local workspace", "bolt.horizontal.circle", busy: true, cancel: true)
             case .ready:
@@ -40,7 +40,7 @@ struct ContentView: View {
                     detail: runtime.statusDetail,
                     symbol: "stop.circle",
                     primaryTitle: "Start Local Lab",
-                    primaryAction: { Task { await runtime.startRuntime(authorizeRelay: false) } },
+                    primaryAction: { Task { await runtime.startRuntime() } },
                     secondaryTitle: nil, secondaryAction: nil, busy: false
                 )
             case .stopping:

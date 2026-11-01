@@ -12,6 +12,17 @@ export class Project extends Actor {
     this.state = JSON.stringify(state);
     return this.state;
   }
+  async routeJob(id: string, input: string): Promise<string> {
+    const s = JSON.parse(this.state), job = s['job:' + id];
+    if (!job || job.status !== 'queued') return JSON.stringify(job ?? null);
+    const route = JSON.parse(input);
+    if (route.viaRelay !== false || route.transport !== 'local-durable') throw Error('Invalid local route');
+    const updated = {...job, viaRelay:false, transport:'local-durable', stage:'Queued locally', ...(route.routingReason ? {routingReason:String(route.routingReason).slice(0,300)} : {})};
+    updated.events = [...(job.events ?? []), {at:Date.now(),actor:'System',phase:job.kind,status:'queued',summary:'Queued locally'}].slice(-200);
+    s['job:' + id] = updated;
+    this.state = JSON.stringify(s);
+    return JSON.stringify(updated);
+  }
 }
 export class Device extends Actor {
   @Persisted private state =
@@ -75,6 +86,8 @@ export class Device extends Actor {
     s.history = [
       ...s.history,
       ...pending.map((j) => ({ ...j, status: "cancelled" })),
+      // Fence delivery that arrives after cancellation but before enqueue.
+      ...(!pending.length && s.active?.id !== id && !s.history.some(j => j.id === id) ? [{id,status:'cancelled'}] : []),
     ].slice(-200);
     this.state = JSON.stringify(s);
     return this.state;

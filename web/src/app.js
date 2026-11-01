@@ -5,7 +5,9 @@ import { LocalAPI, selectActivityTask } from './api.js';
 import { element as el, chartView, number, sampleDashboard, measureColumns, tuningResultView, statisticalInsightsView } from './dashboard.js';
 const $ = id => document.getElementById(id);
 const api = new LocalAPI();
-const visionPanel=new URLSearchParams(globalThis.location?.search||'').get('experimental')==='vision'?visionView(api):null;if(visionPanel)$('workspace-view').append(visionPanel);
+const experiments=new URLSearchParams(globalThis.location?.search||'').get('experimental');
+const reportingExperiments=experiments==='reporting';
+const visionPanel=experiments==='vision'?visionView(api):null;if(visionPanel)$('workspace-view').append(visionPanel);
 let selection=null,selectionKey='';
 const preferences=()=>({priority:$('model-priority').value,allowDownload:$('allow-download').checked,...($('download-budget').value!==''?{maxDownloadGB:Number($('download-budget').value)}:{})});
 const requestKey=()=>JSON.stringify([$ ('task').value.trim(),dataset?.id,preferences()]);
@@ -199,7 +201,7 @@ function renderDocument(task) {
 }
 function renderDashboard(data,evaluation=null,filterValue='',fineTune=null,liveReport=null) {
   const candy=data.source?.measure?.column==='winpercent'&&data.source?.groupColumn==='competitorname';
-  if(candy&&!sample)showAgentLoop(currentTask,api,watchJob);else hideAgentLoop();
+  if(reportingExperiments&&candy&&!sample)showAgentLoop(currentTask,api,watchJob);else hideAgentLoop();
   const focusResult=$('setup-workbench').contains(document.activeElement);
   $('setup-workbench').hidden=true;$('workspace-heading').hidden=true;$('edit-setup').hidden=false;
   const panel=$('dashboard');
@@ -212,7 +214,7 @@ function renderDashboard(data,evaluation=null,filterValue='',fineTune=null,liveR
     select.addEventListener('change',()=>run(async()=>{const value=select.value;if(sample){renderDashboard(sampleDashboard(value),null,value);return;}const generation=epoch,load=taskLoad,id=currentTask;select.disabled=true;try {const updated=await api.post(`/api/tasks/${encodeURIComponent(id)}/dashboard`,{filter:value?{column:filter.column,value}:null});if(generation!==epoch||load!==taskLoad||id!==currentTask)return;renderDashboard(updated,evaluation,value,fineTune,liveReport);}finally{if(generation===epoch&&load===taskLoad&&id===currentTask)select.disabled=false;}}));tools.append(el('label',{for:'dashboard-filter'},filter.column),select);}
   panel.append(el('div',{class:'dashboard-heading'},el('div',{},sample?el('span',{class:'badge'},'Fictional data'):null,el('h2',{id:'dashboard-title',tabindex:'-1'},sample?'Sample dashboard':'Understand your data')),tools));
   if(focusResult)$('dashboard-title').focus({preventScroll:true});
-  panel.append(el('div',{class:'kpis'},(data.kpis||[]).map(k=>el('div',{class:'kpi'},el('small',{},candy&&k.label==='mean: winpercent'?'Average matchup win rate':k.label==='Included rows'?'Entries analyzed':k.label),el('strong',{},number(k.value)+(candy&&k.label==='mean: winpercent'?'%':''))))));
+  panel.append(el('div',{class:'kpis'},(data.kpis||[]).map(k=>el('div',{class:'kpi'},el('small',{},k.label==='Included rows'?'Entries analyzed':k.label),el('strong',{},number(k.value))))));
   panel.append(statisticalInsightsView(data));
   panel.append(el('div',{class:'charts'},(data.charts||[]).map(chartView)));
   if(!sample&&fineTune)panel.append(el('details',{class:'workflow-disclosure','data-workflow':'training-results'},el('summary',{},'Reporting model · measured tuning'),tuningResultView(fineTune)));
@@ -221,7 +223,9 @@ function renderDashboard(data,evaluation=null,filterValue='',fineTune=null,liveR
   panel.append(el('details',{class:'source-note'},el('summary',{},'Source and measure'),el('p',{},`${number(source.filteredRows??source.rows)} of ${number(source.rows)} rows · ${measure} · Negative values: ${source.negativePolicy||'as supplied'}. ${sample?'Fictional data included with this preview. No model was run.':`Model: ${data.model?.id||'not reported'} · Configuration: ${data.configuration||'not reported'}.`}`)));
   if(sample)return;
   const followup=el('form',{class:'followup'},el('label',{class:'sr-only',for:'followup'},'Ask a follow-up'),el('input',{id:'followup',required:true,maxlength:2000,placeholder:'What else would you like to understand?'}),el('button',{class:'primary',type:'submit',disabled:busy},'Ask a follow-up →'));
-  followup.addEventListener('submit',event=>{event.preventDefault();run(async()=>{const result=await api.post(`/api/tasks/${encodeURIComponent(currentTask)}/followup`,{request:$('followup').value.trim()});currentTask=result.taskId;taskLoad++;selectActivityTask(currentTask);await watchJob(result.jobId);});});if(!candy)panel.append(followup);
+  followup.addEventListener('submit',event=>{event.preventDefault();run(async()=>{const result=await api.post(`/api/tasks/${encodeURIComponent(currentTask)}/followup`,{request:$('followup').value.trim()});currentTask=result.taskId;taskLoad++;selectActivityTask(currentTask);await watchJob(result.jobId);});});panel.append(followup);
+  // Historical adapter experiments are opt-in; ordinary CSVs share one workflow.
+  if(!reportingExperiments)return;
   const evalPanel=el('section',{class:'evaluation'},el('h3',{},'Reporting evaluation'),el('button',{class:'secondary',disabled:busy,onClick:()=>run(async()=>{const result=await api.post(`/api/tasks/${encodeURIComponent(currentTask)}/evaluate`);await watchEvaluation(currentTask,result.jobId);})},evaluation?'Run evaluation again':'Run reporting experiment'));
   evalPanel.append(el('dl',{},el('dt',{},'Data'),el('dd',{},'Synthetic benchmark'),el('dt',{},'Changes'),el('dd',{},'Prompt only')));
   evalPanel.append(el('details',{},el('summary',{},'Business rules used in this experiment'),el('p',{},'Revenue includes returns and excludes POST/ADJUST entries. Average order value divides net merchandise revenue by distinct order IDs, including return orders. Product rankings use net revenue. Profit needs cost data. Explicit question overrides take precedence. These are authored demo rules.')));

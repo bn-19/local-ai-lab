@@ -62,12 +62,42 @@ final class RuntimeController {
         }
     }
 
-    func startRuntime(authorizeRelay: Bool) async {
+    func updateRuntime() async {
+        guard case let .ready(node, _) = RuntimeInspection.inspect(paths) else { return }
+        cancelled = false; phase = .installing
+        statusDetail = "Updating local source while preserving saved work and model weights…"
+        do {
+            let bootstrap = try bootstrapDirectory()
+            let process = try ManagedProcess.launch(
+                helper: try helperURL(), executable: node,
+                arguments: [bootstrap.appendingPathComponent("installer/update-runtime.mjs").path, "--runtime", paths.runtimeRoot.path, "--bundle", bootstrap.path],
+                currentDirectory: bootstrap, logURL: paths.hostLogs.appendingPathComponent("source-update.log"),
+                environment: ProcessInfo.processInfo.environment
+            )
+            activeProcess = process; activeRequiresLauncherCleanup = false
+            let result = await process.waitForExit()
+            guard await retire(process, context: "source-update", requiresLauncherCleanup: false) else { return }
+            if cancelled { await inspectAndContinue(automaticallyStart: false); return }
+            guard result == 0 else { throw HostError.sourceUpdateFailed }
+            await inspectAndContinue(automaticallyStart: true)
+        } catch { fail(error) }
+    }
+
+    private func sourceUpdateNeeded() throws -> Bool {
+        let bootstrap = try bootstrapDirectory()
+        let bundled = try JSONSerialization.jsonObject(with: Data(contentsOf: bootstrap.appendingPathComponent("release-manifest.json"))) as? [String: Any]
+        let installed = try JSONSerialization.jsonObject(with: Data(contentsOf: paths.runtimeRoot.appendingPathComponent(".local-lab/installer/release-manifest.json"))) as? [String: Any]
+        let source = bundled?["source"] as? [String: Any]
+        let previous = installed?["source"] as? [String: Any]
+        guard let commit = source?["commit"] as? String else { throw HostError.missingBootstrap }
+        return previous?["commit"] as? String != commit
+    }
+
+    func startRuntime() async {
         let installation = RuntimeInspection.inspect(paths)
-        guard case let .ready(node, relayReady) = installation else {
+        guard case let .ready(node, _) = installation else {
             await inspectAndContinue(automaticallyStart: false); return
         }
-        guard relayReady || authorizeRelay else { phase = .needsRelayConsent; return }
         guard !FileManager.default.fileExists(atPath: paths.launcherSession.path) else {
             phase = .failed("An existing or interrupted launcher session is recorded. Local Lab did not signal it. Inspect the private launcher state or restart your Mac before retrying.")
             return
@@ -77,15 +107,15 @@ final class RuntimeController {
         let readyMarker = UUID().uuidString.lowercased()
         phase = .starting
         webSession = nil
-        statusDetail = relayReady ? "Starting the local workspace…" : "Creating your Relay workspace, then starting local services…"
+        statusDetail = "Starting your local workspace. No cloud account is required."
         do {
             let process = try ManagedProcess.launch(
                 helper: try helperURL(),
                 executable: node,
-                arguments: RuntimeCommand.launcherArguments(launcher: paths.launcher, authorizeRelay: authorizeRelay, readyMarker: readyMarker),
+                arguments: RuntimeCommand.launcherArguments(launcher: paths.launcher, authorizeRelay: false, readyMarker: readyMarker),
                 currentDirectory: paths.runtimeRoot,
                 logURL: paths.hostLogs.appendingPathComponent("runtime-host.log"),
-                environment: ProcessInfo.processInfo.environment
+                environment: ProcessInfo.processInfo.environment.merging(["LOCAL_LAB_RELAY_ENABLED": "0"]) { _, local in local }
             )
             activeProcess = process
             activeRequiresLauncherCleanup = true
@@ -182,12 +212,12 @@ final class RuntimeController {
             statusDetail = "Local Lab installs its runtime in your Application Support folder."
         case let .incomplete(message):
             phase = .failed(message)
-        case let .ready(_, relayReady):
-            if !relayReady {
-                phase = .needsRelayConsent
-                statusDetail = "Local work stays on this Mac. Relay receives coordination metadata after you approve workspace creation."
-            } else if automaticallyStart {
-                await startRuntime(authorizeRelay: false)
+        case .ready:
+            do {
+                if try sourceUpdateNeeded() { phase = .needsUpdate; return }
+            } catch { fail(error); return }
+            if automaticallyStart {
+                await startRuntime()
             } else {
                 phase = .stopped
                 statusDetail = "Runtime installed. Start Local Lab when you're ready."
@@ -241,12 +271,13 @@ final class RuntimeController {
 }
 
 private enum HostError: LocalizedError {
-    case missingBootstrap, missingHelper, bootstrapFailed, runtimeExited, startupTimedOut
+    case missingBootstrap, missingHelper, bootstrapFailed, sourceUpdateFailed, runtimeExited, startupTimedOut
     var errorDescription: String? {
         switch self {
         case .missingBootstrap: "This development build does not contain a verified bootstrap payload. Build a packaged candidate from an exact commit."
         case .missingHelper: "The app bundle is missing its process helper. Reinstall Local Lab."
         case .bootstrapFailed: "Runtime installation failed. Existing files were preserved. Check the private bootstrap log in Application Support/Local Lab/Host Logs and retry."
+        case .sourceUpdateFailed: "Local source update failed. Saved files were preserved; inspect the private source-update.log in Application Support/Local Lab/Host Logs before retrying."
         case .runtimeExited: "Local services exited before the workspace became ready. Check the private runtime logs."
         case .startupTimedOut: "Local services did not become ready within 90 seconds. They were stopped safely; check the private runtime logs and retry."
         }

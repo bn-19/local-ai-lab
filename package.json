@@ -1,8 +1,8 @@
 {
   "name": "local-ai-lab",
-  "version": "0.6.0.0",
+  "version": "0.7.0.0",
   "private": true,
-  "description": "Local CSV analytics with a bounded local model, Agent Relay handoffs and durable Terse jobs",
+  "description": "Local-first model tasks and CSV analytics with a durable device queue and optional Relay",
   "type": "module",
   "engines": {
     "node": ">=22"

@@ -61,7 +61,8 @@ export function activityView(state = {}, taskId = null) {
     });
   }
   if(job) {
-    evidence.push(['Latest job',job.id],['Saved job status',job.status]);
+    evidence.push(['Latest job',job.id],['Saved job status',job.status],['Execution',job.viaRelay?'Optional Relay coordination':'Local durable queue']);
+    if(job.routingReason)evidence.push(['Routing decision',job.routingReason]);
     if(job.startedAt && job.finishedAt >= job.startedAt) evidence.push(['Measured runtime',`${((job.finishedAt-job.startedAt)/1000).toFixed(1)} s`]);
   }
   const ordered = [...rows.values()];

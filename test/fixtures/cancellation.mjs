@@ -4,6 +4,7 @@ const records = {};
 const queued = [];
 const cancelled = [];
 mock.module('../../lib/actors.mjs', { namedExports: {
+  project: {},
   state: async () => structuredClone(records),
   save: async (key, value) => { records[key] = structuredClone(value); },
   device: {

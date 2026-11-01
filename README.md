@@ -4,27 +4,44 @@
 
 Describe what you need, review a model that fits your Mac, and turn a CSV into a useful dashboard. Local Lab brings model setup, analysis and task-specific adaptation into one workflow, while keeping your files and model weights on your computer.
 
-Built for **Haunted Hacks 2026**.
+Originally built for **Haunted Hacks 2026**, now under continued development.
 
-[Download the Mac app](https://github.com/bn-19/local-ai-lab/releases/download/v0.6.0.0/Local-Lab-Mac-App.zip) · [Try the CSV demo](#try-the-csv-demo-on-your-mac) · [Native setup guide](macos/README.md) · [Architecture](#architecture)
+**No cloud account required.** Local Lab v0.7.0.0 runs its models, CSV calculations, durable queue and saved tasks on your Mac. Internet is needed to install runtimes and download models; supported tasks then work offline. Relay and the shared model catalog are optional integrations.
+
+[Download for Apple Silicon Mac](https://github.com/bn-19/local-ai-lab/releases/download/v0.7.0.0/Local-Lab-Mac-App.zip) · [Get started](#try-the-csv-demo-on-your-mac) · [Local-first details](docs/LOCAL_FIRST.md) · [Architecture](#architecture)
 
 ## Try the CSV demo on your Mac
 
-**Judges: start here.** You need an **Apple Silicon Mac (M1 or later), macOS 14+, and an internet connection**. The demonstrated machine is an M5 MacBook Pro with 32 GB memory; the app checks model compatibility and shows download and memory requirements before you run it. Git, Homebrew and administrator privileges are not required.
+You need an **Apple Silicon Mac (M1 or later), macOS 14+**, enough memory/disk for your selected model, and an internet connection for initial setup. The demonstrated machine is an M5 MacBook Pro with 32 GB memory. Git, Homebrew and administrator privileges are not required to use the packaged app.
 
-**[Download the native Mac app ZIP · v0.6.0.0](https://github.com/bn-19/local-ai-lab/releases/download/v0.6.0.0/Local-Lab-Mac-App.zip)** · [Release notes and checksums](https://github.com/bn-19/local-ai-lab/releases/tag/v0.6.0.0)
+**[Download Local Lab · v0.7.0.0](https://github.com/bn-19/local-ai-lab/releases/download/v0.7.0.0/Local-Lab-Mac-App.zip)** · [Release notes and checksums](https://github.com/bn-19/local-ai-lab/releases/tag/v0.7.0.0)
 
 ### 1. Install, start and connect
 
-1. Extract **Local-Lab-Mac-App.zip** and move **Local Lab.app** to Applications. This first native release is **ad-hoc signed and not notarized**. macOS may block a downloaded copy; review its source and origin before using macOS's per-app Open/Open Anyway action. Do not disable system security. See the [native setup guide](macos/README.md) for limitations.
-2. Open **Local Lab.app** and choose **Install Runtime**. It installs verified runtime components and locked dependencies under `~/Library/Application Support/Local Lab/Runtime`. No model weights are downloaded at this step.
-3. Choose **Create Workspace and Start** to approve your own Agent Relay workspace and coordination identities. The app opens and pairs its embedded local workspace automatically. No Terminal window or Vercel page is needed.
+1. Extract **Local-Lab-Mac-App.zip** and move **Local Lab.app** to Applications. It is **ad-hoc signed and not notarized**. macOS may block a downloaded copy; review its source/origin and use macOS's per-app Open/Open Anyway flow. Do not disable system security.
+2. Open **Local Lab.app**. On a fresh installation, choose **Install Runtime**. If you already use an older runtime, choose **Update Local Runtime** to install the bundled source while preserving saved tasks, private files and model weights. No account or Relay workspace is needed.
+3. The app starts and pairs its embedded local workspace automatically. No Terminal window or Vercel page is needed. Model weights remain a separate approved download, with requirements shown before installation.
 
-Model weights are a separate, explicitly approved download. First setup takes longer than subsequent runs and depends on your connection and selected model. The native app reuses its existing runtime; automatic runtime upgrades/migration are not supported. See [measured native acceptance](docs/MAC_APP_ACCEPTANCE.md) for the tested workflow and boundaries.
+Source updates require the runtime to be stopped and compatible dependency/runtime versions. Previous source is retained for recovery; it is not a second copy of your private data. [Native setup, update and distribution limitations →](macos/README.md)
 
-Prefer the command-script helper? [Installer v0.5.0.1](https://github.com/bn-19/local-ai-lab/releases/download/v0.5.0.1/Local-Lab-Mac-Installer.zip) remains available with its [installation and manual-pairing guide](installer/INSTALL.md). It is a separate installation. Do not run both simultaneously because they use the same local ports.
+### 2. Upload any supported CSV
 
-### 2. Upload the real CSV and run an analysis
+1. Choose your CSV under **Your data** and describe the analysis you want. Confirm the measure, value/group columns and optional date/filter columns from its actual schema.
+2. Select **Review setup**. Review a compatible model, approve its download if needed, wait for **Ready**, then select **Run task**.
+3. Inspect the calculated dashboard, filter it, ask a follow-up or reopen it from **Saved tasks**. Activity records the selected model, local queue and measured work.
+4. Choose **Quit Local Lab** to stop owned services. Saved work and model weights remain on your Mac.
+
+For a reproducible non-candy example, download the public [UCI Bike Sharing dataset](https://archive.ics.uci.edu/dataset/275/bike+sharing+dataset) and use **day.csv** (CC BY 4.0). Ask “Show total bike rentals by season with a working-day filter.” Choose **sum**, value **cnt**, group **season**, filter **workingday**, and no date column. Expect **731 rows / 3,292,679 rentals**; filter `workingday = 1` gives **500 rows / 2,292,410 rentals**. These totals were independently checked with the real model and external networking denied.
+
+![Real native local-first dashboard using the public Bike Sharing CSV](docs/assets/local-first-dashboard.png)
+
+Normal CSVs share the same workflow. Legacy candy/retail adapter experiments require explicit experimental opt-in and do not establish general-purpose fine-tuning support. [Measured account-free operation, persistence and recovery →](docs/LOCAL_FIRST.md)
+
+**Troubleshooting:** Wait for setup or the source update to finish. If a port or runtime lock is occupied, stop the other Local Lab session normally. Private diagnostics are in `~/Library/Application Support/Local Lab/Host Logs` and may contain credentials; do not publish them. [Recovery and setup details →](macos/README.md)
+
+### Optional example: historical candy-preference data
+
+
 
 1. **[Download the original candy-data.csv](https://raw.githubusercontent.com/fivethirtyeight/data/4b9d687691091f8e44addfb051a651aebc1a4862/candy-power-ranking/candy-data.csv)** from FiveThirtyEight. If it opens as text, save it as `candy-data.csv`, not an HTML page. This pinned file has **85 entries** and is licensed CC BY 4.0.
 2. In **Workspace**, choose that file under **Your data**. In **What do you need?**, enter:
@@ -47,7 +64,7 @@ Prefer the command-script helper? [Installer v0.5.0.1](https://github.com/bn-19/
 
 This walkthrough runs a real local model and calculates results from the uploaded CSV. **Open sample** is a separate fictional preview and does not run a model. Fine-tuning is optional, requires the separate [MLX setup](docs/WEIGHT_FINETUNING.md), and is not needed for this dashboard.
 
-**Troubleshooting:** Wait for native setup to finish. Temporary Relay errors can be retried; partial workspace setup is preserved. If a port is occupied, Local Lab reports it rather than stopping another app. Private diagnostics are under `~/Library/Application Support/Local Lab/Host Logs`; they may contain credentials and should not be published. [Native setup and limitations →](macos/README.md)
+
 
 ![Local Lab analyzing the candy dataset in the production Halloween interface](docs/assets/analytics-dashboard.png)
 
@@ -63,7 +80,7 @@ This walkthrough runs a real local model and calculates results from the uploade
 
 Model selection uses explicit compatibility rules over a reviewed catalog. It is not a claim to have benchmarked every available model or found a universal “best” model.
 
-## The demo
+## Historical hackathon demo
 
 > “Which chocolate candies are most popular?”
 
@@ -82,7 +99,7 @@ These are historical head-to-head preference scores, not sales, current demand o
 
 *The model interprets the question; trusted operations calculate the answer. The confirmed Chocolate/Fruity/All selection stays visible.*
 
-### Adaptation with evidence
+### Experimental adaptation with evidence
 
 Local Lab can evaluate a reviewed reporting recipe and attempt bounded MLX QLoRA training when development checks justify it. A candidate is selected only when it improves the measured comparison; ties retain the current setup.
 
@@ -95,7 +112,7 @@ One measured candy-adapter experiment improved **26/33 → 29/33** on authored, 
 | Component | Its job in Local Lab |
 | --- | --- |
 | **Terse Durable Actors** | Persist tasks, job attempts, selected configurations and results. A Device actor owns the queue so heavy local jobs run one at a time. |
-| **Agent Relay** | Coordinate Planner, Evaluator and Trainer work using correlated requests and receipts. Recorded status distinguishes Relay delivery from an explicit local durable fallback. |
+| **Agent Relay (optional)** | Explicitly enabled coordination integration. Default startup and tasks use the local durable queue without a cloud account or connection. |
 | **Supabase** | Share a read-only catalog of reviewed model identities and versions. Private files, task contents and weights are not stored in that catalog. |
 | **Ollama / MLX** | Run supported models locally; MLX provides the separate Apple Silicon reporting-adapter training path. |
 | **DuckDB** | Import the CSV and execute validated calculation templates. The app does not execute model-written SQL, Python or shell. |
@@ -146,7 +163,7 @@ mkdir -p .local-lab/runtime
 ln -s "$(command -v ollama)" .local-lab/runtime/ollama
 ```
 
-For the coordinated initial workflow, configure Agent Relay with `npm run setup:relay`. This creates or reuses a dedicated workspace and saves credentials in ignored local storage. [Installation, identity setup and recovery →](docs/IMPLEMENTATION.md)
+For optional cloud coordination, explicitly opt in to Agent Relay; default startup and tasks run locally without it. `npm run setup:relay` provisions a workspace only when you choose that integration. [Installation, identity setup and recovery →](docs/IMPLEMENTATION.md)
 
 Start each service in a separate terminal:
 
