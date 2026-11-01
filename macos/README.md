@@ -6,6 +6,8 @@ The app asks before creating the user's Agent Relay workspace. It then starts th
 
 The WKWebView navigates only to `http://127.0.0.1:4173/app` and its subpaths. A document-start listener waits for the exact packaged frontend's ready event before submitting the private token to the existing pairing form. The token is never placed in a URL, clipboard, native log, or persistent web store. File uploads use a native open panel. There is no JavaScript-to-native command bridge.
 
+[Native CSV, model-download and restart acceptance evidence](../docs/MAC_APP_ACCEPTANCE.md).
+
 ## Build and test
 
 ```sh
