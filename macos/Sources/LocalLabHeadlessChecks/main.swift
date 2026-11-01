@@ -42,10 +42,20 @@ struct LocalLabHeadlessChecks {
         try check(cleanup.unresolvedGroups == [101], "injected EPERM did not fail closed")
         try check(injected.calls.contains { $0.0 == -202 && $0.1 == SIGTERM }, "EPERM skipped another owned group")
 
+        let termination = await MainActor.run { TerminationGate() }
+        try await MainActor.run {
+            try check(termination.beginRequest(), "first quit request did not begin cleanup")
+            try check(!termination.beginRequest(), "second quit request bypassed pending cleanup")
+            try check(termination.isPending, "second quit request cleared pending cleanup")
+            termination.resolve(allowed: false)
+            try check(!termination.isPending, "failed cleanup did not release the cancelled termination request")
+            try check(termination.beginRequest(), "a later quit could not retry cleanup")
+        }
+
         guard CommandLine.arguments.count == 2 else { throw CheckFailure.failed("pass LocalLabProcessHelper path") }
         try await checkRealOrphan(helper: URL(fileURLWithPath: CommandLine.arguments[1]))
         try checkRuntimeInspection()
-        print("Local Lab headless checks passed (navigation, consent, runtime inspection, injected cleanup, real orphan cleanup).")
+        print("Local Lab headless checks passed (navigation, consent, runtime inspection, double-quit gate, injected cleanup, real orphan cleanup).")
     }
 
     private static func checkRealOrphan(helper: URL) async throws {
