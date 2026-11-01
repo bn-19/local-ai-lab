@@ -1,6 +1,6 @@
 import {readFile,writeFile,mkdir,unlink,lstat,open,chmod} from 'node:fs/promises';
 import path from 'node:path';import os from 'node:os';import net from 'node:net';import {randomBytes} from 'node:crypto';import {createInterface} from 'node:readline/promises';import {spawn} from 'node:child_process';
-import {assertPortsFree,ownedProcess,stopOwned,ensureActorSecret,waitForUI,retireOwned} from './processes.mjs';
+import {assertPortsFree,ownedProcess,stopOwned,ensureActorSecret,waitForUI,retireOwned,acquireRuntimeTransition} from './processes.mjs';
 const root=process.cwd(),privateDir=path.join(root,'.local-lab/launcher'),stateFile=path.join(privateDir,'session.json');
 const relayConsent=process.argv.includes('--relay-consent');
 const relayEnabled=relayConsent||process.argv.includes('--relay')||process.env.LOCAL_LAB_RELAY_ENABLED==='1';
@@ -9,7 +9,7 @@ function nativeReadyMarker(){const index=process.argv.indexOf('--native-ready');
 async function stop(){let saved;try{saved=JSON.parse(await readFile(stateFile,'utf8'));}catch{throw Error('No launcher session found. Nothing stopped.');}await new Promise((resolve,reject)=>{const socket=net.createConnection(saved.socket);socket.setTimeout(15000);socket.once('connect',()=>socket.write(JSON.stringify({action:'stop',token:saved.token})+'\n'));socket.once('data',data=>{socket.end();String(data).trim()==='stopped'?resolve():reject(Error('Cleanup did not succeed; inspect the launcher Terminal.'));});socket.once('timeout',()=>{socket.destroy();reject(Error('Launcher did not respond; no process was killed by PID.'));});socket.once('error',()=>reject(Error('Launcher session is stale or unavailable. No process was killed. Inspect the original Terminal.')));});console.log('Owned Local Lab services stopped.');}
 let prompt;
 async function question(text){if(!process.stdin.isTTY)throw Error('Interactive Terminal required for consent.');prompt=createInterface({input:process.stdin,output:process.stdout});try{return (await prompt.question(text)).trim().toLowerCase()==='yes';}finally{prompt.close();prompt=undefined;}}
-async function start(){
+async function startLocked(){
  if(process.platform!=='darwin'||process.arch!=='arm64')throw Error('This helper requires Apple Silicon macOS.');
  await mkdir(privateDir,{recursive:true,mode:0o700});await chmod(privateDir,0o700);
  try{await lstat(stateFile);throw Error('A launcher session record exists. Use Stop.command or inspect its Terminal; no existing process will be interrupted.');}catch(e){if(e.code!=='ENOENT')throw e;}
@@ -43,5 +43,9 @@ async function start(){
   if(!stopping&&!process.argv.includes('--no-open')&&await question('Open the local UI in your default browser? Type yes to open: ')){if(!stopping){const opener=spawn('/usr/bin/open',['http://127.0.0.1:4173/app/'],{stdio:'ignore'});opener.on('error',()=>console.error('Open the local UI address manually.'));}}
   await stopped;
  }catch(e){await cleanup(1);throw e;}finally{for(const [sig,fn]of handlers)process.removeListener(sig,fn);}
+}
+async function start(){
+ const release=await acquireRuntimeTransition(root);
+ try{return await startLocked();}finally{await release();}
 }
 try{if(process.argv[2]==='stop')await stop();else if(process.argv[2]==='start')await start();else throw Error('Use Start.command or Stop.command');}catch(e){console.error('Local Lab:',e.message);process.exitCode=1;}

@@ -1,6 +1,6 @@
 import http from 'node:http';
 import test from 'node:test';import assert from 'node:assert/strict';import {mkdtemp,writeFile,readFile,mkdir,cp,rm,stat} from 'node:fs/promises';import path from 'node:path';import os from 'node:os';import {execFileSync,spawn} from 'node:child_process';import net from 'node:net';import {createHash} from 'node:crypto';
-import {assertPortsFree,ownedProcess,stopOwned,ensureActorSecret,waitForUI,retireOwned} from '../processes.mjs';
+import {assertPortsFree,ownedProcess,stopOwned,ensureActorSecret,waitForUI,retireOwned,acquireRuntimeTransition} from '../processes.mjs';
 const repo=path.resolve(import.meta.dirname,'../..'),common=path.join(repo,'installer/macos/common.sh');
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));async function until(fn){for(let i=0;i<150;i++){try{const v=await fn();if(v)return v;}catch{}await sleep(40);}throw Error('Timed out');}
 async function temp(t){const d=await mkdtemp(path.join(os.tmpdir(),'local lab installer test '));t.after(()=>rm(d,{recursive:true,force:true}));return d;}
@@ -64,4 +64,14 @@ test('default startup needs no Relay file or account and does not run cloud setu
  const child=spawn(process.execPath,['installer/launcher.mjs','start','--no-open'],{cwd:d,stdio:['ignore','pipe','pipe'],env:{...process.env,LOCAL_LAB_RELAY_ENABLED:'0'}});
  const done=new Promise(r=>child.once('close',r));
  try{await until(()=>readFile(path.join(d,'.local-lab/launcher/server.log'),'utf8'));await assert.rejects(stat(path.join(d,'setup-pid')),{code:'ENOENT'});await assert.rejects(stat(path.join(d,'.local-lab/relay.json')),{code:'ENOENT'});execFileSync(process.execPath,['installer/launcher.mjs','stop'],{cwd:d,timeout:15000});assert.equal(await done,0);}finally{if(child.exitCode===null)child.kill('SIGTERM');await done;}
+});
+
+test('startup refuses a runtime held by a source update; released lock permits another owner',async t=>{
+ const d=await fixture(t,true),release=await acquireRuntimeTransition(d);
+ try{
+  const child=spawn(process.execPath,['installer/launcher.mjs','start','--no-open'],{cwd:d,stdio:['ignore','pipe','pipe']});child.stdout.resume();let error='';child.stderr.on('data',b=>error+=b);
+  assert.equal(await new Promise(r=>child.once('close',r)),1);assert.match(error,/already running or updating/);
+  await assert.rejects(stat(path.join(d,'.local-lab/launcher/session.json')),{code:'ENOENT'});
+ }finally{await release();}
+ const again=await acquireRuntimeTransition(d);await release();await assert.rejects(acquireRuntimeTransition(d),/already running or updating/);await again();
 });

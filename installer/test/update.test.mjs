@@ -6,6 +6,7 @@ import path from 'node:path';
 import {createHash} from 'node:crypto';
 import {execFileSync} from 'node:child_process';
 import {updateRuntime} from '../update-runtime.mjs';
+import {acquireRuntimeTransition} from '../processes.mjs';
 async function fixture(t){
  const root=await mkdtemp(path.join(tmpdir(),'local lab update '));t.after(()=>rm(root,{recursive:true,force:true}));
  const runtime=path.join(root,'Runtime'),bundle=path.join(root,'bundle'),source=path.join(root,'local-ai-lab');
@@ -47,4 +48,10 @@ test('CLI updater executes through a symlink/resource path',async t=>{
  await symlink(new URL('../update-runtime.mjs',import.meta.url),link);
  execFileSync(process.execPath,[link,'--runtime',f.runtime,'--bundle',f.bundle],{stdio:'pipe'});
  assert.equal(JSON.parse(await readFile(path.join(f.runtime,'.local-lab/installer/release-manifest.json'))).source.commit,'a'.repeat(40));
+});
+
+test('source update refuses an active runtime transition without touching user data',async t=>{
+ const f=await fixture(t),release=await acquireRuntimeTransition(f.runtime);
+ try{await assert.rejects(updateRuntime(f),/already running or updating/);assert.equal(await readFile(path.join(f.runtime,'.durable-actors/saved'),'utf8'),'saved task');}finally{await release();}
+ await updateRuntime(f);
 });

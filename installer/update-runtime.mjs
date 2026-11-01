@@ -4,7 +4,7 @@ import {createHash,randomUUID} from 'node:crypto';
 import {execFile} from 'node:child_process';
 import {promisify,parseArgs,isDeepStrictEqual} from 'node:util';
 import {fileURLToPath} from 'node:url';
-import {assertPortsFree} from './processes.mjs';
+import {assertPortsFree,acquireRuntimeTransition} from './processes.mjs';
 const exec=promisify(execFile);
 const mutable=['.local-lab','.durable-actors','node_modules','web/node_modules'];
 function dependencyIdentity(bytes){const value=JSON.parse(bytes);delete value.version;if(value.packages?.[''])delete value.packages[''].version;return value;}
@@ -12,7 +12,7 @@ async function exists(p){try{return await lstat(p);}catch(e){if(e.code==='ENOENT
 
 // Source-only update: dependency/runtime changes need a separate installer.
 // Never remove the previous source, user data, weights or unknown user files.
-export async function updateRuntime({runtime,bundle},{afterTransfer=async()=>{},signal}={}) {
+async function updateRuntimeLocked({runtime,bundle},{afterTransfer=async()=>{},signal}={}) {
  runtime=path.resolve(runtime);bundle=path.resolve(bundle);
  const rootStat=await lstat(runtime);
  if(!rootStat.isDirectory()||rootStat.isSymbolicLink())throw Error('Runtime must be an existing real directory');
@@ -40,6 +40,8 @@ export async function updateRuntime({runtime,bundle},{afterTransfer=async()=>{},
   await exec(process.execPath,[path.join(stage,'web/scripts/build.mjs')],{cwd:stage,timeout:60000,signal,env:{...process.env,VERCEL_GIT_COMMIT_SHA:manifest.source.commit}});
   for(const relative of mutable){const s=await exists(path.join(runtime,relative));if(s&&(!s.isDirectory()||s.isSymbolicLink()))throw Error('Mutable runtime directories must be real directories');}
   signal?.throwIfAborted();
+  if(await exists(path.join(runtime,'.local-lab/launcher/session.json')))throw Error('Stop Local Lab before updating');
+  await assertPortsFree([4173,11435,7100]);
   await rename(runtime,backup);backedUp=true;
   for(const relative of mutable)if(await exists(path.join(backup,relative))){
    await mkdir(path.dirname(path.join(stage,relative)),{recursive:true});
@@ -60,6 +62,10 @@ export async function updateRuntime({runtime,bundle},{afterTransfer=async()=>{},
   }catch{rollbackFailed=true;throw Error('Source update stopped; recovery folders were retained beside Runtime. Do not remove them.');}
   throw error;
  }finally{if(!committed&&!rollbackFailed)await rm(stage,{recursive:true,force:true});}
+}
+export async function updateRuntime(options,hooks){
+ const release=await acquireRuntimeTransition(options.runtime);
+ try{return await updateRuntimeLocked(options,hooks);}finally{await release();}
 }
 if(process.argv[1]&&await realpath(process.argv[1]).catch(()=>null)===await realpath(fileURLToPath(import.meta.url))){
  const controller=new AbortController();

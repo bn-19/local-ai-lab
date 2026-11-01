@@ -1,6 +1,7 @@
 import http from 'node:http';
+import path from 'node:path';
 import {setTimeout as delay} from 'node:timers/promises';
-import {open,readFile,chmod,lstat} from 'node:fs/promises';
+import {open,readFile,chmod,lstat,unlink} from 'node:fs/promises';
 import {randomBytes} from 'node:crypto';
 import net from 'node:net';
 import {spawn} from 'node:child_process';
@@ -54,4 +55,18 @@ export async function retireOwned(record){
  const remaining=await stopOwned([record]);
  if(remaining.length)throw Error('Setup process group cleanup did not finish.');
  record.retired=true;record.pid=undefined;
+}
+
+// Hold across startup/service lifetime or a source update. Never steal a lock
+// using a recorded PID: a force-killed owner requires explicit recovery.
+export async function acquireRuntimeTransition(root){
+ const file=path.join(path.dirname(path.resolve(root)),'.'+path.basename(root)+'.transition-lock');
+ let handle;
+ try{handle=await open(file,'wx',0o600);}catch(error){if(error.code==='EEXIST')throw Error('Runtime is already running or updating. Stop Local Lab before retrying; a force-killed session may require manual recovery.');throw error;}
+ const identity=await handle.stat();let released=false;
+ try{await handle.writeFile(JSON.stringify({pid:process.pid}));}catch(error){await handle.close();await unlink(file);throw error;}
+ return async()=>{
+  if(released)return;released=true;await handle.close();
+  try{const current=await lstat(file);if(current.ino===identity.ino&&current.dev===identity.dev)await unlink(file);}catch(error){if(error.code!=='ENOENT')throw error;}
+ };
 }
