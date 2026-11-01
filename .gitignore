@@ -27,3 +27,4 @@ venv/
 dist/
 .cache/
 coverage/
+macos/.build/
