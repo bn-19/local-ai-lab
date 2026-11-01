@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.5.0.1] - 2026-11-01
+
+### Fixed
+- Load the local interface and document extractor correctly when the installation path contains spaces, including the default Local Lab folder.
+
+
 ## [0.5.0.0] - 2026-10-31
 
 ### Added
