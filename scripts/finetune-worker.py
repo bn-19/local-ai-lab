@@ -197,7 +197,7 @@ def _run(run, manifest):
     ]
     for phase, message in phases:
         _announce(message)
-        subprocess.run([sys.executable, __file__, phase, str(run)], check=True, timeout=max(1, 900-(time.monotonic()-started)))
+        subprocess.run([sys.executable, '-I', __file__, phase, str(run)], check=True, timeout=max(1, 900-(time.monotonic()-started)))
     baseline = _json_load(run / 'baseline.json')
     adapted = _json_load(run / 'adapted.json')
     final_cases = _json_load(run / 'final.json')
