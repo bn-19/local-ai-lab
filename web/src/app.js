@@ -68,6 +68,7 @@ async function pair(token) {
   } finally {pairing=false;submit.disabled=false;}
 }
 function disconnect() {
+  if(holdActiveBuild())return;
   hideAgentLoop();hideBuild();toolBuilder.resetReview();
   selection=null;selectionKey='';
   epoch++;api.disconnect();clearTimeout(timer);health=null;dataset=null;currentTask=null;activeJob=null;sample=false;busy=false;
@@ -196,6 +197,7 @@ async function watchEvaluation(taskId,initialJobId) {
   await poll();
 }
 async function loadTask(id) {
+  if(holdActiveBuild())return;
   const generation=epoch, load=++taskLoad;const task=await api.get(`/api/tasks/${encodeURIComponent(id)}`);if(generation!==epoch||load!==taskLoad)return;
   hideBuild();$('dashboard').replaceChildren();$('dashboard').hidden=true;
   currentTask=task.id;selectActivityTask(currentTask);sample=false;
@@ -290,8 +292,13 @@ async function renderSaved() {
 async function renderActivity() { /* Live monitor is owned by the activity observer. */ }
 document.querySelectorAll('[data-view]').forEach(button=>button.addEventListener('click',()=>{if(button.dataset.view==='workspace'){newTool();return;}view(button.dataset.view);run(async()=>{if(button.dataset.view==='saved')await renderSaved();if(button.dataset.view==='activity')await renderActivity();});}));
 $('connection-link').addEventListener('click',()=>view('connection'));
+function holdActiveBuild(){
+  if(!toolBuild.active||!busy)return false;
+  view('workspace');toolBuild.focus();notify('Wait for creation to finish, or choose Stop and wait for confirmation before opening another task.');return true;
+}
+document.querySelector('.brand').addEventListener('click',event=>{if(holdActiveBuild())event.preventDefault();});
 function newTool() {
-  if(toolBuild.active&&busy){view('workspace');toolBuild.focus();return;}
+  if(holdActiveBuild())return;
   if(busy){notify('Wait for the current task, or stop it in Activity.');return;}
   hideBuild();toolBuilder.resetReview();taskLoad++;currentTask=null;selectActivityTask(null);view('workspace');
   $('dashboard').replaceChildren();$('dashboard').hidden=true;$('setup-workbench').hidden=false;$('workspace-heading').hidden=false;$('edit-setup').hidden=true;
