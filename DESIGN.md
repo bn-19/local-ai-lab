@@ -2,15 +2,19 @@
 
 ## Physical scene and theme
 
-A person sits at a kitchen table in daylight, opening a work file and wanting a quick, understandable result. Use a light paper-toned workspace with dark readable text and a restrained pine-green action color.
+A person sits at a kitchen table in daylight, opening a work file and wanting a quick, understandable result. Use a light cool-gray workspace with dark readable text and a restrained blue action color.
 
 ## Layout
 
-A compact navigation rail and a central analytics workspace. Lead with the question and selected CSV. Group required measure/comparison settings; disclose optional date, filter and negative-value settings. Results lead with metrics and a dominant trend chart. Retail reports and model improvement are separate disclosures below the result. Keep agent receipts in optional details, with compact task activity beside the question and result. Stack activity below the result on narrow screens. Collapse navigation and stack panels on small screens. No explanatory rail, taglines or repeated page labels.
+A compact navigation rail and one coherent task surface. Creating reusable tools is primary. Initial setup asks for the purpose and a selected CSV; column mapping is disclosed unless required. Review shows purpose, filename, actual expected downloads and file handling before Create tool. Technical selection and training evidence are under Details.
+
+Create immediately replaces setup in place with current on-device progress and a stable Stop control, including while the creation acknowledgement or queue is pending. Use four real phases: check the starting model, learn from examples, test the result, save. Show counts only when backend state supplies a phase-local count. No overall completion bar or guessed ETA. Replace raw worker text with a bounded plain-language phase; retain the raw evidence under Details.
+
+Ready leads to Open saved tool. Stopped, interrupted, failed and disconnected states explain the safe next step. An unknown creation acknowledgement must lead to checking saved tasks rather than an automatic duplicate request. A saved tool puts Ask your saved tool and its latest answer first. Diagnostic Activity is secondary. Use the actual native Mac viewport as the layout baseline.
 
 ## Color tokens
 
-Use OKLCH: background oklch(0.974 0.006 95), surface oklch(0.995 0.004 95), text oklch(0.25 0.016 160), muted oklch(0.49 0.012 160), border oklch(0.87 0.012 110), accent oklch(0.44 0.075 157), accent-soft oklch(0.93 0.025 157). Amber is reserved for caution/preview status.
+Use OKLCH: background oklch(.98 .003 245), surface oklch(.997 .002 245), text oklch(.27 .018 245), muted oklch(.49 .018 245), border oklch(.89 .009 245), accent oklch(.46 .085 245), accent-soft oklch(.94 .025 245). Amber is reserved for caution.
 
 ## Typography and shape
 

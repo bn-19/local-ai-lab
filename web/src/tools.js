@@ -1,37 +1,55 @@
 import {element as el,number} from './dashboard.js';
 
-const explain='First supported learning task: sales reporting. Revenue, average order value, order count and product rankings; profit requires cost data. Other learning recipes are not supported yet.';
-export function toolBuilderView(api,{getDataset,onJob,onError}){
+const scope='Sales totals, order counts, average order value and product rankings across the whole file. No date or country filters; profit needs cost data.';
+export function toolBuilderView(api,{getDataset,onBuild,onJob,onError,onReview=()=>{}}){
   const purpose=el('input',{required:true,maxlength:2000,'aria-label':'What should your reusable tool do?',value:'Help me answer sales reporting questions from my CSV'});
-  const review=el('button',{type:'submit',class:'primary'},'Review learning setup');
-  const status=el('div',{'aria-live':'polite'});
-  const mappingFields=el('div',{class:'tool-mapping'});let shownDataset=null;
-  const section=el('section',{class:'tool-builder'},el('h2',{},'What should your tool help with?'),el('p',{class:'muted'},explain));
-  const form=el('form',{},el('label',{},'What should the tool help with?',purpose),mappingFields,review,status);section.append(form);
-  const mapLabels={order:'Order reference',product:'Product code',quantity:'Quantity',unitPrice:'Price per item'};
-  const defaults={order:'InvoiceNo',product:'StockCode',quantity:'Quantity',unitPrice:'UnitPrice'};
+  const review=el('button',{type:'submit',class:'primary'},'Review setup');
+  const feedback=el('p',{role:'status','aria-live':'polite'});
+  const mappingFields=el('div',{class:'tool-mapping'});let shownDataset;
+  const columns=el('details',{class:'builder-columns'},el('summary',{},'Match your file columns'),mappingFields);
+  const form=el('form',{},el('label',{},'Describe the job',purpose),columns,review,feedback);
+  const setup=el('section',{class:'tool-approval',hidden:true});
+  const section=el('section',{class:'tool-builder'},form,setup);
+  const mapLabels={order:'Order reference',product:'Product code',quantity:'Quantity',unitPrice:'Price per item'},defaults={order:'InvoiceNo',product:'StockCode',quantity:'Quantity',unitPrice:'UnitPrice'};
   const refresh=()=>{
-    const dataset=getDataset();if(dataset?.id===shownDataset)return;shownDataset=dataset?.id;
-    mappingFields.replaceChildren();
-    if(!dataset||dataset.kind==='document'){mappingFields.append(el('p',{},'Choose a sales CSV above first.'));return;}
+    const dataset=getDataset();if(dataset?.id===shownDataset)return;shownDataset=dataset?.id;mappingFields.replaceChildren();
+    if(!dataset||dataset.kind==='document'){mappingFields.append(el('p',{},'Choose a sales CSV first.'));return;}
+    let missing=false;
     for(const [key,label] of Object.entries(mapLabels)){
-      const select=el('select',{'data-tool-column':key,'aria-label':label},el('option',{value:''},'Choose a column'),dataset.columns.map(c=>el('option',{value:c.name},c.name)));
-      if(dataset.columns.some(c=>c.name===defaults[key]))[...select.options].find(option=>option.value===defaults[key]).setAttribute('selected','');
+      const select=el('select',{'data-tool-column':key,'aria-label':label},el('option',{value:''},'Choose a column'),dataset.columns.map(c=>el('option',{value:c.name,selected:c.name===defaults[key]},c.name)));
+      if(!dataset.columns.some(c=>c.name===defaults[key]))missing=true;
       mappingFields.append(el('label',{},label,select));
     }
+    columns.open=missing;
   };
-  section.addEventListener('pointerdown',refresh);section.addEventListener('focusin',refresh);
+  section.refreshDataset=refresh;
   const input=()=>({request:purpose.value.trim(),datasetId:getDataset()?.id,mapping:Object.fromEntries([...mappingFields.querySelectorAll('select')].map(s=>[s.dataset.toolColumn,s.value]))});
-  form.addEventListener('submit',async event=>{event.preventDefault();refresh();review.disabled=true;status.replaceChildren(el('p',{},'Checking this Mac and the learning recipe…'));
+  function reset(){form.hidden=false;setup.hidden=true;setup.replaceChildren();feedback.textContent='';review.disabled=false;onReview(false);refresh();}
+  section.resetReview=reset;
+  form.addEventListener('submit',async event=>{event.preventDefault();refresh();review.disabled=true;feedback.textContent='Checking the file and what this Mac needs…';
     try{
-      const body=input(),key=JSON.stringify(body),plan=await api.post('/api/tools/recommend',body);
-      const start=el('button',{type:'button',class:'primary','data-action':'start-learning',disabled:!plan.compatible},plan.action);
-      start.addEventListener('click',async()=>{if(key!==JSON.stringify(input())){status.replaceChildren(el('p',{},'Your choices changed. Review setup again.'));return;}start.disabled=true;
-        try{const created=await api.post('/api/tools',body);await onJob(created);}
+      const body=input(),key=JSON.stringify(body),dataset=getDataset(),plan=await api.post('/api/tools/recommend',body);
+      if(key!==JSON.stringify(input())){feedback.textContent='Your choices changed. Review setup again.';return;}
+      const downloads=[];
+      if(!plan.setup.modelCached)downloads.push(Number.isFinite(plan.model.downloadGB)?`about ${number(plan.model.downloadGB)} GB for the model`:'model download size unavailable');
+      if(!plan.setup.runtimeReady)downloads.push(Number.isFinite(plan.setup.downloadBytes)?`about ${Math.ceil(plan.setup.downloadBytes/1e6)} MB for learning components`:'learning setup size unavailable');
+      const sizesKnown=(!downloads.length)||(!downloads.some(s=>s.includes('unavailable')));
+      const start=el('button',{type:'button',class:'primary','data-action':'start-learning',disabled:!plan.compatible||!sizesKnown},'Create tool');
+      const edit=el('button',{type:'button',class:'secondary',onClick:()=>{reset();purpose.focus();}},'Edit setup');
+      start.addEventListener('click',async()=>{
+        if(start.disabled)return;
+        if(key!==JSON.stringify(input())){reset();feedback.textContent='Your choices changed. Review setup again.';return;}
+        start.disabled=true;
+        try{if(onBuild)await onBuild(body,{request:body.request,file:dataset?.name||'Your selected CSV',plan});else await onJob(await api.post('/api/tools',body));}
         catch(error){start.disabled=false;onError(error.message);}
       });
-      status.replaceChildren(el('p',{},plan.compatible?'This Mac can run the reviewed learning recipe.':plan.reasons.join('. ')),el('p',{},`${plan.model.repository} · ${plan.setup.modelCached?'Verify local model cache':`About ${plan.model.downloadGB} GB model download`} · ${plan.setup.runtimeReady?'Learning setup installed':`About ${Math.ceil((plan.setup.downloadBytes||0)/1e6)} MB learning setup download`}`),el('p',{},'Local Lab installs its own verified Python and learning components. No manual Python installation, account or administrator access is needed.'),el('p',{},plan.scope),el('p',{},plan.dataUse),el('p',{},'We compare the unchanged model with real adapted weights. A candidate is kept only if held-out checks improve and critical checks pass. Otherwise the base model is retained.'),start,el('details',{},el('summary',{},'Selection evidence'),el('pre',{},JSON.stringify(plan,null,2))));
-    }catch(error){status.replaceChildren(el('p',{role:'alert'},error.message));}finally{review.disabled=false;}
+      setup.replaceChildren(...[el('p',{class:'eyebrow'},'REVIEW YOUR TOOL'),el('h1',{},'Ready to create'),el('p',{class:'approval-purpose'},body.request),
+        el('dl',{class:'approval-facts'},el('dt',{},'File'),el('dd',{},dataset?.name||'Your selected CSV'),el('dt',{},'Downloads'),el('dd',{},downloads.length?'Needs '+downloads.join(' and ')+'.':'None expected. Local files will be checked before use.')),
+        el('p',{class:'approval-privacy'},'Your CSV stays on this Mac and is used for calculations, not training. Learning uses built-in practice questions. No cloud account is needed.'),
+        el('p',{class:'tool-scope-note'},scope),!plan.compatible?el('p',{role:'alert'},plan.reasons.join('. ')):null,!sizesKnown?el('p',{role:'alert'},'Download requirements could not be verified. Review Details before continuing.'):null,
+        el('div',{class:'build-actions'},start,edit),el('details',{class:'build-diagnostics'},el('summary',{},'Details'),el('p',{},'We test the original and tuned model. The tuned version is saved only if checks improve without losing critical behavior. Otherwise the original model is kept.'),el('pre',{},JSON.stringify(plan,null,2)))].filter(Boolean));
+      form.hidden=true;setup.hidden=false;feedback.textContent='';onReview(true);section.scrollIntoView?.({block:'start'});start.focus({preventScroll:true});
+    }catch(error){feedback.textContent=error.message;columns.open=true;}finally{review.disabled=false;}
   });
   return section;
 }

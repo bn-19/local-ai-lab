@@ -1,7 +1,7 @@
 import { mkdir, copyFile, writeFile, rm } from 'node:fs/promises';
 import { execFileSync } from 'node:child_process';
 const root = new URL('../', import.meta.url);
-const files = ['index.html', 'src/app.js', 'src/tools.js', 'src/vision.js', 'src/model-inventory.js', 'src/agent-loop.js', 'src/api.js', 'src/activity.js', 'src/activity-state.js', 'src/dashboard.js', 'src/styles.css', 'favicon.svg'];
+const files = ['index.html', 'src/app.js', 'src/tools.js', 'src/tool-build.js', 'src/vision.js', 'src/model-inventory.js', 'src/agent-loop.js', 'src/api.js', 'src/activity.js', 'src/activity-state.js', 'src/dashboard.js', 'src/styles.css', 'favicon.svg'];
 await rm(new URL('dist/assets/halloween/', root), { recursive: true, force: true });
 await mkdir(new URL('dist/src/', root), { recursive: true });
 for (const file of files) await copyFile(new URL(file, root), new URL(`dist/${file}`, root));

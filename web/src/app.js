@@ -1,5 +1,6 @@
 import {visionView,pileResultView,pileEstimateView} from './vision.js';
 import {toolBuilderView,savedToolView} from './tools.js';
+import {toolBuildView} from './tool-build.js';
 import {modelInventoryView} from './model-inventory.js';
 import {showAgentLoop,hideAgentLoop} from './agent-loop.js';
 import { LocalAPI, selectActivityTask } from './api.js';
@@ -14,7 +15,21 @@ const preferences=()=>({priority:$('model-priority').value,allowDownload:$('allo
 const requestKey=()=>JSON.stringify([$ ('task').value.trim(),dataset?.id,preferences()]);
 let health=null, dataset=null, currentTask=null, activeJob=null, timer=null, sample=false, busy=false, pairing=false, epoch=0, taskLoad=0;
 const toolJob=async created=>{currentTask=created.taskId;taskLoad++;selectActivityTask(currentTask);sample=false;await watchJob(created.jobId,currentTask);};
-$('tool-builder-slot').append(toolBuilderView(api,{getDataset:()=>dataset,onJob:toolJob,onError:message=>notify(message,true)}));
+const toolBuilder=toolBuilderView(api,{getDataset:()=>dataset,onJob:toolJob,onError:message=>notify(message,true),onReview:reviewed=>{$('workspace-heading').hidden=reviewed;$('setup-workbench').dataset.reviewed=String(reviewed);},onBuild:async(body,context)=>{showBuild();await toolBuild.start(body,context);}});
+$('tool-builder-slot').append(toolBuilder);
+const toolBuild=toolBuildView(api,{
+  onBusy:value=>{busy=value;updateConnection();},
+  onCreated:created=>{currentTask=created.taskId;taskLoad++;selectActivityTask(currentTask);},
+  onOpen:async id=>{toolBuild.dispose();$('workspace-view').removeAttribute('data-building');await run(async()=>{await loadTask(id);view('workspace');$('dashboard').querySelector('input')?.focus();$('dashboard').scrollIntoView({block:'start'});});},
+  onSaved:refreshSavedCount,
+  onEdit:()=>{hideBuild();toolBuilder.resetReview();$('setup-workbench').hidden=false;$('workspace-heading').hidden=false;},
+  onShowSaved:()=>{view('saved');void run(renderSaved);}
+});
+$('setup-workbench').before(toolBuild.element);
+function showBuild(){
+  $('workspace-view').dataset.building='true';$('setup-workbench').hidden=true;$('workspace-heading').hidden=true;$('dashboard').hidden=true;$('job-panel').hidden=true;$('edit-setup').hidden=true;$('notice').hidden=true;
+}
+function hideBuild(){toolBuild.dispose();$('workspace-view').removeAttribute('data-building');}
 const views=['workspace','saved','activity','connection'];
 function notify(message, error=false) { $('notice').textContent=message; $('notice').className=error?'error':''; $('notice').hidden=false; }
 function view(name) {
@@ -53,7 +68,7 @@ async function pair(token) {
   } finally {pairing=false;submit.disabled=false;}
 }
 function disconnect() {
-  hideAgentLoop();
+  hideAgentLoop();hideBuild();toolBuilder.resetReview();
   selection=null;selectionKey='';
   epoch++;api.disconnect();clearTimeout(timer);health=null;dataset=null;currentTask=null;activeJob=null;sample=false;busy=false;
   $('csv').value='';$('pair-token').value='';$('task').value='';$('saved-count').textContent='0';
@@ -120,7 +135,7 @@ async function importCSV() {
   if(file.size===0)throw new Error('This file is empty. Choose another file.');
   dataset=null;$('profile').hidden=true;$('profile').replaceChildren();
   const generation=epoch;busy=true;updateConnection();notify(`Importing ${file.name}…`);
-  try {if(/\.(jpe?g|png)$/i.test(file.name)){if(!visionPanel)throw Error('Photo recognition is experimental. Choose a CSV or document for this workspace.');await visionPanel.uploadPhoto(file);if(generation!==epoch)return;dataset=null;$('profile').hidden=true;$('notice').hidden=true;$('setup-workbench').hidden=true;$('workspace-heading').hidden=true;$('edit-setup').hidden=false;return;}const result=await api.upload(file);if(generation!==epoch)return;dataset=result;if(dataset.kind==='document'){$('profile').hidden=false;$('profile').replaceChildren(el('h3',{},dataset.name));}else renderProfile();$('notice').hidden=true;}
+  try {if(/\.(jpe?g|png)$/i.test(file.name)){if(!visionPanel)throw Error('Photo recognition is experimental. Choose a CSV or document for this workspace.');await visionPanel.uploadPhoto(file);if(generation!==epoch)return;dataset=null;$('profile').hidden=true;$('notice').hidden=true;$('setup-workbench').hidden=true;$('workspace-heading').hidden=true;$('edit-setup').hidden=false;return;}const result=await api.upload(file);if(generation!==epoch)return;dataset=result;toolBuilder.refreshDataset();if(dataset.kind==='document'){$('profile').hidden=false;$('profile').replaceChildren(el('h3',{},dataset.name));}else renderProfile();$('notice').hidden=true;}
   finally{if(generation===epoch){busy=false;updateConnection();}}
 }
 async function createTask(event) {
@@ -182,10 +197,11 @@ async function watchEvaluation(taskId,initialJobId) {
 }
 async function loadTask(id) {
   const generation=epoch, load=++taskLoad;const task=await api.get(`/api/tasks/${encodeURIComponent(id)}`);if(generation!==epoch||load!==taskLoad)return;
-  $('dashboard').replaceChildren();$('dashboard').hidden=true;
+  hideBuild();$('dashboard').replaceChildren();$('dashboard').hidden=true;
   currentTask=task.id;selectActivityTask(currentTask);sample=false;
   hideAgentLoop();
   if(task.toolResult){$('dashboard').hidden=false;$('setup-workbench').hidden=true;$('workspace-heading').hidden=true;$('edit-setup').hidden=false;$('dashboard').replaceChildren(savedToolView(task.toolResult,task.toolRun,api,{onJob:toolJob,onError:message=>notify(message,true),preview:task.toolPreview}));return;}
+  if(task.kind==='tool'){const state=await api.get('/api/state');if(generation!==epoch||load!==taskLoad)return;const job=(state.jobs||[]).filter(j=>j.taskId===task.id&&j.kind==='tool-build').at(-1);if(job){showBuild();toolBuild.resume(job,{request:task.request,file:'Previously selected CSV'},{request:task.request,datasetId:task.datasetId,mapping:task.mapping});}else notify('No saved creation job was found. Your existing tools are unchanged.',true);return;}
   if(task.pileResult||task.pileEstimate){const r=task.pileResult??task.pileEstimate,render=r.kind==='pile-estimate'?pileEstimateView:pileResultView;$('dashboard').hidden=false;$('dashboard').replaceChildren(render(r));api.get('/api/photos/'+r.photoId).then(photo=>{if(generation===epoch&&load===taskLoad&&currentTask===task.id)$('dashboard').replaceChildren(render(r,photo.preview));}).catch(()=>{if(generation===epoch&&load===taskLoad&&currentTask===task.id)$('dashboard').append(el('p',{role:'status'},'Image unavailable — boxes not shown. Reopen this saved task to retry; counts above remain saved.'));});return;}
   if(task.visionResult){const r=task.visionResult;$('dashboard').hidden=false;$('dashboard').replaceChildren(el('h2',{id:'dashboard-title'},r.label),el('p',{},r.scope),el('p',{},r.scoreMeaning),el('p',{},'Saved local vision result · '+r.model.selected+' · '+r.model.revision));return;}
   if(task.textResult){renderDocument({...task,documentResult:{...task.textResult,name:'Answer',parts:[],model:task.model}});return;}
@@ -269,14 +285,15 @@ async function renderSaved() {
   const panel=$('saved-list');panel.replaceChildren(el('p',{class:'empty'},api.connected?'Loading saved tasks…':'Connect your Mac'));
   if(!api.connected)return;const state=await refreshSavedCount();panel.replaceChildren();
   if(!state.tasks?.length)panel.append(el('p',{class:'empty'},'No saved tasks'));
-  for(const task of state.tasks||[])panel.append(el('div',{class:'task-row'},el('div',{},el('h3',{},task.request||task.id),el('p',{},`${task.toolResult?'Reusable sales tool':'Saved task'} · ${task.status}`)),el('button',{class:'secondary',onClick:()=>run(async()=>{await loadTask(task.id);view('workspace');$('dashboard').scrollIntoView({block:'start'});})},task.toolResult?'Ask this tool':'Open task')));
+  for(const task of state.tasks||[])panel.append(el('div',{class:'task-row'},el('div',{},el('h3',{},task.request||task.id),el('p',{},`${task.toolResult?'Reusable sales tool':'Saved task'} · ${task.status}`)),el('button',{class:'secondary',onClick:()=>run(async()=>{await loadTask(task.id);view('workspace');if(toolBuild.active)toolBuild.focus();else $('dashboard').scrollIntoView({block:'start'});})},task.toolResult?'Ask this tool':'Open task')));
 }
 async function renderActivity() { /* Live monitor is owned by the activity observer. */ }
 document.querySelectorAll('[data-view]').forEach(button=>button.addEventListener('click',()=>{if(button.dataset.view==='workspace'){newTool();return;}view(button.dataset.view);run(async()=>{if(button.dataset.view==='saved')await renderSaved();if(button.dataset.view==='activity')await renderActivity();});}));
 $('connection-link').addEventListener('click',()=>view('connection'));
 function newTool() {
-  if(busy){notify('Wait for the current task, or cancel it in Activity.');return;}
-  taskLoad++;currentTask=null;selectActivityTask(null);view('workspace');
+  if(toolBuild.active&&busy){view('workspace');toolBuild.focus();return;}
+  if(busy){notify('Wait for the current task, or stop it in Activity.');return;}
+  hideBuild();toolBuilder.resetReview();taskLoad++;currentTask=null;selectActivityTask(null);view('workspace');
   $('dashboard').replaceChildren();$('dashboard').hidden=true;$('setup-workbench').hidden=false;$('workspace-heading').hidden=false;$('edit-setup').hidden=true;
   $('tool-builder-slot').querySelector('input').focus();
 }
