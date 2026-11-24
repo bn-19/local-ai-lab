@@ -8,6 +8,13 @@ public struct AppPaths: Sendable, Equatable {
     }
 
     public static func live(fileManager: FileManager = .default) throws -> AppPaths {
+        // Explicit developer isolation. Never repoint an existing installation during testing.
+        if let isolated = ProcessInfo.processInfo.environment["LOCAL_LAB_DEVELOPMENT_SUPPORT"] {
+            guard isolated.hasPrefix("/"), isolated.count > 1 else {
+                throw NSError(domain: "LocalLabPaths", code: 1, userInfo: [NSLocalizedDescriptionKey: "Development support path must be absolute."])
+            }
+            return AppPaths(applicationSupport: URL(fileURLWithPath: isolated, isDirectory: true))
+        }
         let base = try fileManager.url(
             for: .applicationSupportDirectory,
             in: .userDomainMask,

@@ -1,4 +1,5 @@
 import {visionRoot,visionStatus,createVisionTask} from './lib/vision.mjs';
+import {recommendTool,createToolTask,queueToolRun,queueToolCalculation} from './lib/reusable-tools.mjs';
 import {imageType,visionAction} from './lib/vision-policy.mjs';
 import {recommendation,checkInstall} from './lib/model-selection.mjs';
 import {modelInventory} from './lib/model-inventory.mjs';
@@ -141,6 +142,13 @@ const server = createServer(async (req, res) => {
         return send(200, await health());
       if(pathname==="/api/models/recommend"&&req.method==="POST")return send(200,await recommendation(await jsonBody(req)));
       if(pathname==="/api/models/inventory"&&req.method==="GET")return send(200,await modelInventory(await state()));
+      if(pathname==='/api/tools/recommend'&&req.method==='POST')return send(200,await recommendTool(await jsonBody(req)));
+      if(pathname==='/api/tools'&&req.method==='POST')return send(202,await createToolTask(await jsonBody(req),enqueue));
+      if(pathname==='/api/tools'&&req.method==='GET')return send(200,Object.entries(await state()).filter(([k])=>k.startsWith('tool:')).map(([,v])=>v));
+      const toolRunMatch=pathname.match(/^\/api\/tools\/([a-f0-9-]{36})\/run$/);
+      if(toolRunMatch&&req.method==='POST'){const job=await queueToolRun(toolRunMatch[1],await jsonBody(req),enqueue);return send(202,{jobId:job.id,taskId:job.taskId});}
+      const toolCalculateMatch=pathname.match(/^\/api\/tools\/([a-f0-9-]{36})\/calculate$/);
+      if(toolCalculateMatch&&req.method==='POST'){const job=await queueToolCalculation(toolCalculateMatch[1],await jsonBody(req),enqueue);return send(202,{jobId:job.id,taskId:job.taskId});}
       if (pathname === "/api/state" && req.method === "GET") {
         const s = await state(),
           d = JSON.parse(await device.read());

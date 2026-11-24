@@ -1,0 +1,40 @@
+# Reusable local tools — development slice
+
+This branch adds one genuine learning workflow: **whole-file sales reporting**. The public v0.7 download does not include it yet. Other tasks (email, image generation, general model training) remain outside this verified slice.
+
+## Use it
+
+1. Open the Mac app and choose a sales CSV under **Your data**.
+2. Open **Teach a reusable local tool**. Describe the sales-reporting job and map order reference, product code, quantity and price columns.
+3. Choose **Review learning setup**. The app checks the task, Apple Silicon, system/available memory, disk and the local training runtime. It selects one reviewed trainable Qwen3-4B MLX recipe, not a universal best model.
+4. Approve **Download setup, learn, compare and save tool** (or cache reuse). Setup downloads use the internet; learning uses authored synthetic questions locally. Uploaded CSV rows are not automatically training examples.
+5. The Device queue owns one reservation through setup, baseline, actual QLoRA training, candidate evaluation and artifact verification. No nested heavy job is queued while holding that reservation.
+6. Inspect the held-out comparison. Promotion requires strict aggregate improvement, nonzero trained LoRA-B weights, every critical case passing, and no baseline-passing critical regression. Ties or failed gates retain the unchanged base model.
+7. Ask the saved tool a new question, or attach another CSV with the same mapped columns. Saved tasks reopen the same tool. Neither the latest adapter nor a cloud service is an execution fallback.
+
+This recipe covers revenue, average order value, unique order count, product rankings and missing-cost clarification for profit/margin. It includes refunds unless the question explicitly excludes negative quantities. Merchandise scope excludes exactly POST/ADJUST. No dates, countries or arbitrary filters; recognized unsupported filter requests are rejected before calculation. The language checks are bounded and not a general intent verifier. Always inspect the returned plan.
+
+## Identity and recovery
+
+The tool binds the exact public base repository/revision and all nine load-relevant file hashes; adapter weights and adapter configuration; prompt, column mapping, calculation policy, recipe version and runtime versions. The base is checked against pinned upstream Hub SHA-256/Git-blob identities, not an unverified local revision label. Each invocation verifies the binding before and after inference and compares the inference worker's loaded adapter checksum. Missing or modified artifacts fail explicitly; they never silently run the baseline.
+
+The reviewed base is `mlx-community/Qwen3-4B-4bit` revision `4dcb3d101c2a062e5c1d4bb173588c54ea6c4d25`, Apache-2.0. [Pinned model](https://huggingface.co/mlx-community/Qwen3-4B-4bit/tree/4dcb3d101c2a062e5c1d4bb173588c54ea6c4d25), [MLX-LM LoRA guide](https://github.com/ml-explore/mlx-lm/blob/main/mlx_lm/LORA.md).
+
+The small synthetic held-out set is a development gate, not a real-world accuracy estimate. Training examples, final questions, input hashes, unchanged/adapted raw responses, timings and adapter SHA are retained locally per run. The final set must not be reused to optimize hyperparameters after seeing its results.
+
+Cancellation stops the task-owned process group before releasing the Device reservation. Unconfirmed training cleanup retains the active marker and reservation for manual recovery. Abrupt interruption is not automatically retried as a successful training run.
+
+## Current setup limits
+
+- Apple Silicon, at least 24 GB total memory, estimated 8 GB available and 8 GB free disk. MLX learning allocation is capped at 8 GiB for this recipe; this is not an OS-wide memory sandbox.
+- Python 3.12 must already exist at one of the reviewed framework/Homebrew paths, or the pinned project `.venv` must be installed. The app can create a project venv/install pinned training packages but cannot yet bootstrap Python itself. No technical training parameters are exposed to the user.
+- Model and runtime downloads remain separate from weight adaptation. Reusing verified cached weights is reported as cache reuse, not as a newly measured download.
+- The native app is still ad-hoc signed, not notarized, and not in the macOS App Sandbox. Offline execution tests are distinct from a shipped OS security boundary.
+
+## Isolated Mac verification
+
+`LOCAL_LAB_DEVELOPMENT_SUPPORT=/absolute/isolated/path` points the native app at a separate support directory. Invalid overrides fail closed instead of falling back to the installed runtime. `LOCAL_LAB_DEVELOPMENT_OFFLINE=1`, together with that explicit isolated directory, wraps the app-owned launcher and all processing descendants in an OS profile that denies external outbound networking while permitting localhost/Unix sockets. These are developer validation controls, not an ordinary install setting.
+
+`node scripts/tool-acceptance.mjs start` uses the committed seven-row synthetic sales fixture. `... run` checks actual inference and independent expected arithmetic. Neither command launches a browser. The native UI, restart/new-input, artifact tamper and cleanup results must be recorded separately; API success alone does not prove the app UI works.
+
+Fresh Mac measurements and remaining gaps will be recorded after the current validation completes.
