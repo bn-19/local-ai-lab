@@ -17,7 +17,7 @@ test('changing learning choices invalidates reviewed download approval',async()=
     const columns=['InvoiceNo','StockCode','Quantity','UnitPrice'].map(name=>({name}));
     const view=toolBuilderView({post:async()=>{posts++;return {compatible:true,model:{repository:'reviewed',downloadGB:2.3},setup:{},action:'Download and learn',scope:'bounded',dataUse:'synthetic'};}},{getDataset:()=>({id:'csv',columns}),onJob:()=>assert.fail('not reviewed'),onError:message=>assert.fail(message)});
     view.querySelector('form').dispatchEvent(new window.Event('submit',{cancelable:true}));await flush();
-    view.querySelector('input').value='A changed task';view.querySelector('button.primary').dispatchEvent(new window.Event('click'));await flush();
+    view.querySelector('input').value='A changed task';view.querySelector('[data-action=start-learning]').dispatchEvent(new window.Event('click'));await flush();
     assert.equal(posts,1);assert.match(view.textContent,/choices changed/);
   }finally{delete globalThis.document;delete globalThis.Node;}
 });

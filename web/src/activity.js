@@ -19,7 +19,7 @@ function render() {
   const next=JSON.stringify(view);
   if(next===signature)return;
   signature=next;
-  panel.hidden=false;
+  panel.hidden=!selectedTask;
   if(!panel.firstChild)panel.append(el('h2',{id:'live-activity-title'},'Activity'),announcement,current,queue,history,details);
   const label=view.error||view.status;
   if(announcement.textContent!==label)announcement.textContent=label;

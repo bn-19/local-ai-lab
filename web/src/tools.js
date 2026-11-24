@@ -3,7 +3,7 @@ import {element as el,number} from './dashboard.js';
 const explain='First supported learning task: sales reporting. Revenue, average order value, order count and product rankings; profit requires cost data. Other learning recipes are not supported yet.';
 export function toolBuilderView(api,{getDataset,onJob,onError}){
   const purpose=el('input',{required:true,maxlength:2000,'aria-label':'What should your reusable tool do?',value:'Help me answer sales reporting questions from my CSV'});
-  const review=el('button',{type:'submit',class:'secondary'},'Review learning setup');
+  const review=el('button',{type:'submit',class:'primary'},'Review learning setup');
   const status=el('div',{'aria-live':'polite'});
   const mappingFields=el('div',{class:'tool-mapping'});let shownDataset=null;
   const section=el('section',{class:'tool-builder'},el('h2',{},'What should your tool help with?'),el('p',{class:'muted'},explain));
@@ -13,7 +13,7 @@ export function toolBuilderView(api,{getDataset,onJob,onError}){
   const refresh=()=>{
     const dataset=getDataset();if(dataset?.id===shownDataset)return;shownDataset=dataset?.id;
     mappingFields.replaceChildren();
-    if(!dataset||dataset.kind==='document'){mappingFields.append(el('p',{},'Upload a sales CSV in Your data first.'));return;}
+    if(!dataset||dataset.kind==='document'){mappingFields.append(el('p',{},'Choose a sales CSV above first.'));return;}
     for(const [key,label] of Object.entries(mapLabels)){
       const select=el('select',{'data-tool-column':key,'aria-label':label},el('option',{value:''},'Choose a column'),dataset.columns.map(c=>el('option',{value:c.name},c.name)));
       if(dataset.columns.some(c=>c.name===defaults[key]))[...select.options].find(option=>option.value===defaults[key]).setAttribute('selected','');
@@ -25,7 +25,7 @@ export function toolBuilderView(api,{getDataset,onJob,onError}){
   form.addEventListener('submit',async event=>{event.preventDefault();refresh();review.disabled=true;status.replaceChildren(el('p',{},'Checking this Mac and the learning recipe…'));
     try{
       const body=input(),key=JSON.stringify(body),plan=await api.post('/api/tools/recommend',body);
-      const start=el('button',{type:'button',class:'primary',disabled:!plan.compatible},plan.action);
+      const start=el('button',{type:'button',class:'primary','data-action':'start-learning',disabled:!plan.compatible},plan.action);
       start.addEventListener('click',async()=>{if(key!==JSON.stringify(input())){status.replaceChildren(el('p',{},'Your choices changed. Review setup again.'));return;}start.disabled=true;
         try{const created=await api.post('/api/tools',body);await onJob(created);}
         catch(error){start.disabled=false;onError(error.message);}
