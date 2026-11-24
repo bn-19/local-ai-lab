@@ -6,7 +6,7 @@ Describe what you need, review a model that fits your Mac, and turn a CSV into a
 
 Originally built for **Haunted Hacks 2026**, now under continued development.
 
-**Development branch:** a new [reusable local tools workflow](docs/REUSABLE_TOOLS.md) learns a reviewed sales-reporting task with actual QLoRA weights, compares against the unchanged base, and saves a fingerprint-bound tool. It is not included in the v0.7 download below. Other learning tasks are not supported yet.
+**Development branch:** a new [reusable local tools workflow](docs/REUSABLE_TOOLS.md) learns a reviewed sales-reporting task with actual QLoRA weights, compares against the unchanged base, and saves a fingerprint-bound tool. It [installs its own verified Python/learning runtime](docs/MANAGED_TRAINING_RUNTIME.md), without manual Python or administrator access. These changes are not included in the v0.7 download below. Other learning tasks are not supported yet.
 
 **No cloud account required.** Local Lab v0.7.0.0 runs its models, CSV calculations, durable queue and saved tasks on your Mac. Internet is needed to install runtimes and download models; supported tasks then work offline. Relay and the shared model catalog are optional integrations.
 

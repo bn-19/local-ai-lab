@@ -27,7 +27,7 @@ Cancellation stops the task-owned process group before releasing the Device rese
 ## Current setup limits
 
 - Apple Silicon, at least 24 GB total memory, estimated 8 GB available and 8 GB free disk. MLX learning allocation is capped at 8 GiB for this recipe; this is not an OS-wide memory sandbox.
-- Python 3.12 must already exist at one of the reviewed framework/Homebrew paths, or the pinned project `.venv` must be installed. The app can create a project venv/install pinned training packages and resume its own interrupted setup, but cannot yet bootstrap Python itself. An incompatible pre-existing environment is preserved. No technical training parameters are exposed to the user.
+- The app downloads [its own pinned Python and learning components](MANAGED_TRAINING_RUNTIME.md), about 156 MB plus separate model weights. No manually installed Python, global package installation, administrator access or account is required for the learning workflow. A completed verified cache is reused; interrupted setup can retry without adopting an unknown environment. No technical training parameters are exposed to the user.
 - Model and runtime downloads remain separate from weight adaptation. Reusing verified cached weights is reported as cache reuse, not as a newly measured download.
 - The native app is still ad-hoc signed, not notarized, and not in the macOS App Sandbox. Offline execution tests are distinct from a shipped OS security boundary.
 
@@ -39,7 +39,7 @@ Cancellation stops the task-owned process group before releasing the Device rese
 
 ## Fresh Mac measurements — November 24, 2026
 
-The isolated, packaged Mac app imported the committed seven-row synthetic sales CSV, selected/reused the upstream-verified MLX cache, and performed real training through the Device queue with external networking denied at the OS level. A separate external HTTPS probe using the same profile failed. Cached weights/runtime were copied into the isolated fixture; a fresh large download and a clean-machine Python installation were not measured.
+The initial isolated, packaged Mac app imported the committed seven-row synthetic sales CSV, selected/reused the upstream-verified MLX cache, and performed real training through the Device queue with external networking denied at the OS level. A separate external HTTPS probe using the same profile failed. Those initial measurements reused cached weights/runtime. The later [managed-runtime milestone](MANAGED_TRAINING_RUNTIME.md) separately measures automatic Python/wheel setup from empty app-owned training state; a fresh multi-GB model download remains unmeasured.
 
 | Check | Observed result |
 | --- | --- |
