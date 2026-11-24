@@ -54,7 +54,7 @@ export function savedToolView(tool,result,api,{onJob,onError,preview=null}){
   const question=el('input',{required:true,maxlength:2000,'aria-label':'Ask your saved tool',placeholder:'What is our revenue, including refunds?'});
   const file=el('input',{type:'file',accept:'.csv,text/csv','aria-label':'Use a new sales CSV (optional)'});
   const submit=el('button',{type:'submit',class:'primary'},'Review saved tool answer');
-  const form=el('form',{class:'followup'},el('label',{},'Ask your saved tool',question),el('label',{},'Optional: another CSV with the same mapped columns',file),submit);
+  const form=el('form',{class:'tool-run-form'},el('label',{},'Ask your saved tool',question),el('label',{},'Optional: another CSV with the same mapped columns',file),submit);
   form.addEventListener('submit',async event=>{event.preventDefault();submit.disabled=true;
     try{let datasetId=tool.datasetId;if(file.files?.length)datasetId=(await api.upload(file.files[0])).id;
       const job=await api.post(`/api/tools/${tool.id}/run`,{request:question.value.trim(),datasetId});await onJob(job);
