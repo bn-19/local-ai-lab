@@ -14,17 +14,17 @@ const preferences=()=>({priority:$('model-priority').value,allowDownload:$('allo
 const requestKey=()=>JSON.stringify([$ ('task').value.trim(),dataset?.id,preferences()]);
 let health=null, dataset=null, currentTask=null, activeJob=null, timer=null, sample=false, busy=false, pairing=false, epoch=0, taskLoad=0;
 const toolJob=async created=>{currentTask=created.taskId;taskLoad++;selectActivityTask(currentTask);sample=false;await watchJob(created.jobId,currentTask);};
-$('workspace-view').append(toolBuilderView(api,{getDataset:()=>dataset,onJob:toolJob,onError:message=>notify(message,true)}));
+$('tool-builder-slot').append(toolBuilderView(api,{getDataset:()=>dataset,onJob:toolJob,onError:message=>notify(message,true)}));
 const views=['workspace','saved','activity','connection'];
 function notify(message, error=false) { $('notice').textContent=message; $('notice').className=error?'error':''; $('notice').hidden=false; }
 function view(name) {
   views.forEach(v=>$(v+'-view').hidden=v!==name);
   document.querySelectorAll('[data-view]').forEach(b=>{const active=b.dataset.view===name;b.classList.toggle('active',active);if(active)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');});
   $('main').focus({preventScroll:true});
-  $('page-name').textContent={workspace:'Workspace',saved:'Saved tasks',activity:'Monitor',connection:'Connect your Mac'}[name];
+  $('page-name').textContent={workspace:'Create a tool',saved:'Your tools & tasks',activity:'Activity',connection:'Connect your Mac'}[name];
 }
 function updateConnection() {
-  $('connection-badge').textContent=api.connected?'● Connected to your Mac':'○ Not connected';
+  $('connection-badge').textContent=api.connected?'● On this Mac':'○ Not connected';
   $('connection-badge').className='badge'+(api.connected?' connected':'');
   $('csv').disabled=!api.connected || busy;
   $('create-button').textContent=api.connected?(selection&&selectionKey===requestKey()?'Run task →':'Review setup →'):'Connect your Mac ↗';
@@ -269,12 +269,18 @@ async function renderSaved() {
   const panel=$('saved-list');panel.replaceChildren(el('p',{class:'empty'},api.connected?'Loading saved tasks…':'Connect your Mac'));
   if(!api.connected)return;const state=await refreshSavedCount();panel.replaceChildren();
   if(!state.tasks?.length)panel.append(el('p',{class:'empty'},'No saved tasks'));
-  for(const task of state.tasks||[])panel.append(el('div',{class:'task-row'},el('div',{},el('h3',{},task.request||task.id),el('p',{},`${task.status} · ${task.id}`)),el('button',{class:'secondary',onClick:()=>run(async()=>{await loadTask(task.id);view('workspace');$('dashboard').scrollIntoView({block:'start'});})},'Open task')));
+  for(const task of state.tasks||[])panel.append(el('div',{class:'task-row'},el('div',{},el('h3',{},task.request||task.id),el('p',{},`${task.toolResult?'Reusable sales tool':'Saved task'} · ${task.status}`)),el('button',{class:'secondary',onClick:()=>run(async()=>{await loadTask(task.id);view('workspace');$('dashboard').scrollIntoView({block:'start'});})},task.toolResult?'Ask this tool':'Open task')));
 }
 async function renderActivity() { /* Live monitor is owned by the activity observer. */ }
-document.querySelectorAll('[data-view]').forEach(button=>button.addEventListener('click',()=>{view(button.dataset.view);run(async()=>{if(button.dataset.view==='saved')await renderSaved();if(button.dataset.view==='activity')await renderActivity();});}));
+document.querySelectorAll('[data-view]').forEach(button=>button.addEventListener('click',()=>{if(button.dataset.view==='workspace'){newTool();return;}view(button.dataset.view);run(async()=>{if(button.dataset.view==='saved')await renderSaved();if(button.dataset.view==='activity')await renderActivity();});}));
 $('connection-link').addEventListener('click',()=>view('connection'));
-$('edit-setup').addEventListener('click',()=>{$('setup-workbench').hidden=false;$('workspace-heading').hidden=false;$('edit-setup').hidden=true;$('task').focus();});
+function newTool() {
+  if(busy){notify('Wait for the current task, or cancel it in Activity.');return;}
+  taskLoad++;currentTask=null;selectActivityTask(null);view('workspace');
+  $('dashboard').replaceChildren();$('dashboard').hidden=true;$('setup-workbench').hidden=false;$('workspace-heading').hidden=false;$('edit-setup').hidden=true;
+  $('tool-builder-slot').querySelector('input').focus();
+}
+$('edit-setup').addEventListener('click',newTool);
 for(const id of ['task','model-priority','allow-download','download-budget'])$(id).addEventListener('input',()=>{selection=null;selectionKey='';renderRuntime();updateConnection();});
 $('task-form').addEventListener('submit',event=>run(()=>createTask(event)));
 $('csv').addEventListener('change',()=>run(importCSV));
@@ -286,18 +292,9 @@ window.addEventListener('pagehide',disconnect);
 updateConnection();
 // Both hosted and same-origin pages require explicit token pairing.
 
-// Store only the visual preference; pairing and task data remain in memory.
-const halloweenSwitch=$('halloween-mode');
-function setHalloweenMode(enabled) {
-  document.documentElement.dataset.theme=enabled?'halloween':'default';
-  halloweenSwitch.checked=enabled;
-  document.querySelector('meta[name="theme-color"]').content=enabled?'#221c29':'#f7f7f2';
-}
-try {setHalloweenMode(localStorage.getItem('local-lab-halloween')==='true');} catch {setHalloweenMode(false);}
-halloweenSwitch.addEventListener('change',()=>{
-  setHalloweenMode(halloweenSwitch.checked);
-  try {localStorage.setItem('local-lab-halloween',String(halloweenSwitch.checked));} catch { /* Theme still works without storage. */ }
-});
+// Retire only the old appearance preference, preserving all other local state.
+try { localStorage.removeItem('local-lab-halloween'); } catch { /* Storage may be unavailable. */ }
+delete document.documentElement.dataset.theme;
 // Native hosts wait for this event before submitting the in-memory pairing token.
 // It fires only after the form's preventDefault handler is installed.
 window.dispatchEvent(new window.Event('local-lab-web-ready'));

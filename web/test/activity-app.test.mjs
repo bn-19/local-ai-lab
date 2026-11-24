@@ -12,6 +12,10 @@ test('saved-task buttons scope Activity, clear old results and fence slow loads'
   // LinkeDOM intentionally omits the browser select.value setter.
   Object.defineProperty(window.HTMLSelectElement.prototype,'value',{configurable:true,get(){return this.querySelector('option[selected]')?.value||'';},set(value){for(const option of this.querySelectorAll('option')){if(option.value===value)option.setAttribute('selected','');else option.removeAttribute('selected');}}});
   const originalFetch=globalThis.fetch;
+  const originalStorage=Object.getOwnPropertyDescriptor(globalThis,'localStorage');
+  const stored=new Map([['local-lab-halloween','true'],['unrelated-setting','keep-me']]);
+  Object.defineProperty(globalThis,'localStorage',{configurable:true,value:{removeItem:key=>stored.delete(key),getItem:key=>stored.get(key)}});
+  document.documentElement.dataset.theme='halloween';
   let resolveA,resolveFilter,delayA=false;const posts=[];let generated=0;let delayState=false;const pendingState=[];
   const tasks=[{id:'a',request:'Task A',status:'ready',documentResult:{name:'Document A',parts:[{answer:'Result A'}],characters:10,model:'m'}},{id:'b',request:'Task B',status:'failed'}];
   const dashboard={kpis:[],charts:[],filters:[{column:'kind',values:['one']}],source:{name:'Analytics C'}};tasks.push({id:'c',request:'Task C',status:'ready',dashboard});
@@ -32,6 +36,8 @@ test('saved-task buttons scope Activity, clear old results and fence slow loads'
   const click=node=>node.dispatchEvent(new window.Event('click'));
   try{
     await import('../src/app.js');await import('../src/activity.js');
+    assert.equal(stored.has('local-lab-halloween'),false);assert.equal(stored.get('unrelated-setting'),'keep-me');
+    assert.equal(document.documentElement.dataset.theme,undefined);assert.equal(document.getElementById('halloween-mode'),null);
     document.getElementById('pair-token').value='fixture';
     document.getElementById('pair-form').dispatchEvent(new window.Event('submit',{cancelable:true}));await flush();
     click(document.querySelector('[data-view="saved"]'));await flush();
@@ -56,13 +62,14 @@ test('saved-task buttons scope Activity, clear old results and fence slow loads'
     assert.equal(generated,2);assert.ok(posts.at(-1).url.endsWith('/api/tasks/new-1/followup'));
     assert.match(document.getElementById('dashboard').textContent,/function sum/);
     click(document.getElementById('disconnect'));delayState=true;document.getElementById('pair-token').value='fixture';document.getElementById('pair-form').dispatchEvent(new window.Event('submit',{cancelable:true}));await flush();
-    assert.match(document.getElementById('connection-badge').textContent,/Connected to/);
+    assert.match(document.getElementById('connection-badge').textContent,/On this Mac/);
     click(document.querySelector('[data-view="saved"]'));await flush();
     delayState=false;for(const resolve of pendingState.splice(0))resolve();await flush();
     assert.equal(document.getElementById('saved-view').hidden,false,'finishing pairing must not override the user navigation');
     click(document.querySelector('#saved-list button'));await flush();resolveA();await flush();assert.match(document.getElementById('dashboard').textContent,/Result A/);
   }finally{
     click(document.getElementById('disconnect'));globalThis.fetch=originalFetch;
+    if(originalStorage)Object.defineProperty(globalThis,'localStorage',originalStorage);else delete globalThis.localStorage;
     delete globalThis.document;delete globalThis.window;delete globalThis.Node;
   }
 });
