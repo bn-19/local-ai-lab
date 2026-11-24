@@ -27,3 +27,7 @@ Use actual connection and job states: downloading, queued, running, evaluating, 
 ## Motion and accessibility
 
 Short color/opacity transitions only; honor prefers-reduced-motion. Native labelled file input and buttons, aria-live feedback, semantic headings and visible focus. Explain the output in words, never color alone.
+
+## Creation status motion
+
+Waiting uses soft opacity dots, never the active-work ring. Active work uses a small rotating arc; when backend state reports a valid phase-local count, a thin track fills to exactly that count. Only transform/opacity animate. Keep the same nodes and animation across polls, reset the track instantly when its phase changes, and reserve the feedback row's space. Do not animate progress between backend reports, guess an ETA or imply an overall percentage. Stop, recovery, disconnection and terminal states are static. Reduced motion retains the status label, static arc/dots and exact count bar with animations and transitions disabled.
