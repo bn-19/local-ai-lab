@@ -22,7 +22,7 @@ The existing development virtual environment was used only as a pip front end. N
 ```sh
 PIP_CACHE_DIR=/private/tmp/local-lab-wheel-lock-5f756f31/cache \
 PIP_DISABLE_PIP_VERSION_CHECK=1 \
-/Users/boaznakhimovsky/Documents/Codex/local-lab-reusable-tools/.venv/bin/python \
+./.venv/bin/python \
   -m pip install \
   --dry-run \
   --ignore-installed \
@@ -40,7 +40,7 @@ PIP_DISABLE_PIP_VERSION_CHECK=1 \
 ```sh
 PIP_CACHE_DIR=/private/tmp/local-lab-wheel-lock-5f756f31/cache \
 PIP_DISABLE_PIP_VERSION_CHECK=1 \
-/Users/boaznakhimovsky/Documents/Codex/local-lab-reusable-tools/.venv/bin/python \
+./.venv/bin/python \
   -m pip download \
   --only-binary=:all: \
   --platform macosx_14_0_arm64 \
@@ -86,7 +86,7 @@ Finally, a temporary requirements file was generated with one exact `name==versi
 
 ```sh
 PIP_DISABLE_PIP_VERSION_CHECK=1 \
-/Users/boaznakhimovsky/Documents/Codex/local-lab-reusable-tools/.venv/bin/python \
+./.venv/bin/python \
   -m pip install \
   --dry-run \
   --ignore-installed \
