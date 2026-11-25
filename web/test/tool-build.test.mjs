@@ -68,11 +68,23 @@ test('one live status hides the workflow, and transitions only when the state ch
  const flow=toolBuildView({post:async()=>created,get:async()=>jobs[Math.min(index++,3)]});document.body.append(flow.element);await flow.start({request:'sales'});
  assert.equal(flow.element.querySelector('.build-step-label').textContent,'Step 2 of 4');assert.equal(flow.element.querySelector('h1').textContent,'Learning from examples');assert.equal(flow.element.querySelector('.build-steps-disclosure').hasAttribute('open'),false);assert.equal(flow.element.querySelector('.build-step-mark'),null);assert.equal(flow.element.querySelector('.build-work-arc'),null);
  const calls=animations;t.mock.timers.tick(1000);await flush();assert.equal(animations,calls,'count-only polls do not restart status motion');
- t.mock.timers.tick(1000);await flush();assert.equal(flow.element.querySelector('.build-step-label').textContent,'Step 3 of 4');assert.equal(animations,calls+1);
+ t.mock.timers.tick(1000);await flush();assert.equal(flow.element.querySelector('.build-step-label').textContent,'Step 3 of 4');assert.equal(animations,calls+2);
  t.mock.timers.tick(1000);await flush();assert.equal(flow.element.querySelector('h1').textContent,'Your tool is ready');assert.equal(flow.element.querySelector('.build-step-label').textContent,'Saved on this Mac');assert.equal(flow.element.querySelector('[data-action=open-tool]').hidden,false);flow.dispose();
 });
 test('reduced motion skips state transitions without changing the meaningful status',async t=>{
  const {document,window}=dom(t);const original=globalThis.matchMedia;globalThis.matchMedia=()=>({matches:true});let animations=0;
  window.HTMLElement.prototype.animate=()=>{animations++;return {cancel(){}};};
  try{const flow=toolBuildView({post:async()=>created,get:async()=>({status:'ready',result:tool})});document.body.append(flow.element);await flow.start({request:'sales'});assert.equal(animations,0);assert.equal(flow.element.querySelector('h1').textContent,'Your tool is ready');flow.dispose();}finally{if(original)globalThis.matchMedia=original;else delete globalThis.matchMedia;}
+});
+
+test('phase handoff preserves the real prior state, hides its snapshot from access, and leaves controls in place',async t=>{
+ t.mock.timers.enable({apis:['setTimeout']});const {document,window,click}=dom(t);let index=0;const effects=[];
+ window.HTMLElement.prototype.animate=function(){const effect={cancelled:false,cancel(){this.cancelled=true;}};effects.push(effect);return effect;};
+ const jobs=[{status:'running',stage:'Learning from local examples · 10 of 120'},{status:'running',stage:'Evaluating trained candidate: 1/12'}];
+ const flow=toolBuildView({post:async()=>created,get:async()=>jobs[Math.min(index++,1)]});document.body.append(flow.element);await flow.start({request:'sales'},{file:'sales.csv'});
+ const stop=flow.element.querySelector('[data-action=stop-build]'),disclosure=flow.element.querySelector('.build-steps-disclosure');disclosure.open=true;
+ t.mock.timers.tick(1000);await flush();const old=flow.element.querySelector('.build-status-outgoing');
+ assert.match(old.textContent,/Learning from examples/);assert.match(old.textContent,/10 of 120/);assert.equal(old.getAttribute('aria-hidden'),'true');assert.ok(old.hasAttribute('inert'));assert.equal(old.querySelector('[id]'),null);assert.equal(old.querySelector('button'),null);
+ assert.equal(flow.element.querySelectorAll('#build-title').length,1);assert.equal(flow.element.querySelector('[data-action=stop-build]'),stop);assert.equal(disclosure.open,true);assert.match(flow.element.querySelector('.build-status-content:not(.build-status-outgoing)').textContent,/Testing the result/);
+ click(stop);assert.equal(flow.element.querySelector('.build-status-outgoing'),null);assert.equal(flow.element.querySelector('h1').textContent,'Stopping…');assert.ok(effects.every(effect=>effect.cancelled));flow.dispose();
 });

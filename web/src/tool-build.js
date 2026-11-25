@@ -59,18 +59,33 @@ export function toolBuildView(api,{onBusy=()=>{},onCreated=()=>{},onOpen=()=>{},
     }
   }
   const stepLabel=el('p',{class:'build-step-label'},'Getting ready');
-  const liveStatus=el('header',{class:'build-live-status'},stepLabel,heading,description);
-  let transitionKey='',transitionEffect=null;
+  const statusContent=el('div',{class:'build-status-content'},stepLabel,heading,description,feedback);
+  const liveStatus=el('div',{class:'build-live-status'},statusContent);
+  let transitionKey='',statusSnapshot=null,transitionEffects=[],outgoing=null;
+  const reducedMotion=()=>Boolean(globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches);
+  function clearTransition(){for(const effect of transitionEffects)effect?.cancel();transitionEffects=[];outgoing?.remove();outgoing=null;}
   function changed(key,label){
     if(stepLabel.textContent!==label)stepLabel.textContent=label;
-    if(key===transitionKey)return;
-    transitionKey=key;transitionEffect?.cancel();
-    if(!globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches){
-      transitionEffect=liveStatus.animate?.([{opacity:.35,transform:'translateY(4px)'},{opacity:1,transform:'translateY(0)'}],{duration:180,easing:'cubic-bezier(.22,1,.36,1)'});
-    }
+    const nextSnapshot=statusContent.cloneNode(true);
+    if(key===transitionKey){statusSnapshot=nextSnapshot;return;}
+    const previous=statusSnapshot;statusSnapshot=nextSnapshot;
+    const interruptedOpacity=globalThis.getComputedStyle?Number(globalThis.getComputedStyle(statusContent).opacity):1;
+    transitionKey=key;clearTransition();
+    // Urgent feedback is immediate; buttons and focus never participate in the visual handoff.
+    if(reducedMotion()||!previous||/^(stopping|connection|terminal)/.test(key))return;
+    outgoing=previous;outgoing.classList.add('build-status-outgoing');outgoing.setAttribute('aria-hidden','true');outgoing.setAttribute('inert','');
+    for(const node of outgoing.querySelectorAll('[id]'))node.removeAttribute('id');
+    liveStatus.append(outgoing);
+    const old=outgoing;
+    const exit=old.animate?.([{opacity:Number.isFinite(interruptedOpacity)?interruptedOpacity:1,transform:'translateY(0)'},{opacity:0,transform:'translateY(-2px)'}],{duration:140,easing:'cubic-bezier(.22,1,.36,1)',fill:'forwards'});
+    const enter=statusContent.animate?.([{opacity:0,transform:'translateY(2px)'},{opacity:1,transform:'translateY(0)'}],{duration:220,easing:'cubic-bezier(.22,1,.36,1)'});
+    transitionEffects=[exit,enter];
+    if(exit)exit.onfinish=()=>{old.remove();if(outgoing===old)outgoing=null;};else{old.remove();outgoing=null;}
   }
   const announcement=el('p',{class:'sr-only',role:'status','aria-live':'polite','aria-atomic':'true'});
   const task=el('p',{class:'build-task'});
+  const fileContext=el('p',{class:'build-file-context'});
+  const contextHeader=el('header',{class:'build-context'},task,fileContext);
   const steps=el('ol',{class:'build-phases','aria-label':'All creation steps'},...phases.map((label,i)=>el('li',{},el('span',{class:'build-step-number','aria-hidden':'true'},String(i+1)),el('span',{},label),el('span',{class:'build-step-state'},'Next'))));
   const allSteps=el('details',{class:'build-steps-disclosure'},el('summary',{},'View all steps'),steps);
   const stop=el('button',{type:'button',class:'secondary','data-action':'stop-build'},'Stop');
@@ -81,11 +96,13 @@ export function toolBuildView(api,{onBusy=()=>{},onCreated=()=>{},onOpen=()=>{},
   const saved=el('button',{type:'button',class:'secondary',hidden:true},'View saved tasks');
   const facts=el('pre');
   const details=el('details',{class:'build-diagnostics'},el('summary',{},'Details'),facts);
-  const panel=el('section',{class:'tool-build-surface',hidden:true,'aria-labelledby':'build-title'},task,liveStatus,feedback,announcement,el('div',{class:'build-actions'},stop,open,retry,reconnect,edit,saved),allSteps,el('p',{class:'build-local-note'},'On this Mac. Your other tools stay unchanged.'),details);
+  const controls=el('div',{class:'build-actions'},stop,open,retry,reconnect,edit,saved);
+  const statusShell=el('section',{class:'build-status-shell','aria-label':'Tool creation status'},liveStatus,controls);
+  const panel=el('section',{class:'tool-build-surface',hidden:true,'aria-labelledby':'build-title'},contextHeader,statusShell,announcement,allSteps,el('p',{class:'build-local-note'},'On this Mac. Your other tools stay unchanged.'),details);
   function announce(key,text){if(key!==announceKey){announceKey=key;announcement.textContent=text;}}
   function focusStart(){panel.scrollIntoView?.({block:'start'});stop.focus({preventScroll:true});}
   function showRecovery(message,unknown=false){
-    motion('paused');clearTimeout(timer);heading.textContent='Connection interrupted';changed('connection','Status unavailable');description.textContent=message;count.textContent='';reconnect.hidden=unknown;saved.hidden=false;stop.hidden=unknown;stop.setAttribute('aria-disabled',unknown?'true':'false');
+    motion('paused');clearTimeout(timer);heading.textContent='Connection interrupted';description.textContent=message;count.textContent='';changed('connection','Status unavailable');reconnect.hidden=unknown;saved.hidden=false;stop.hidden=unknown;stop.setAttribute('aria-disabled',unknown?'true':'false');
     announce('connection',unknown?'Could not confirm creation. Check saved tasks before creating another tool.':'Connection interrupted. The task may still be running on this Mac.');
     facts.textContent=JSON.stringify({jobId,taskId,lastJob},null,2);
     // Unknown creation acknowledgement must never become an automatic duplicate POST.
@@ -93,8 +110,8 @@ export function toolBuildView(api,{onBusy=()=>{},onCreated=()=>{},onOpen=()=>{},
   }
   function reset(input,info){
     generation++;clearTimeout(timer);jobId=taskId=null;body=input;context=info;lastPhase=0;stopRequested=stopSending=finished=polling=false;announceKey='';lastJob=null;
-    panel.hidden=false;panel.dataset.state='working';motion('waiting');task.textContent=`${info.request||input?.request||'Sales reporting'}${info.file?' · '+info.file:''}`;
-    heading.textContent='Starting your tool';description.textContent='Saving your request on this Mac before learning begins.';changed('starting:'+generation,'Getting ready');count.textContent='';
+    panel.hidden=false;panel.dataset.state='working';motion('waiting');task.textContent=info.request||input?.request||'Sales reporting';fileContext.textContent=info.file?`${info.file} · On this Mac`:'On this Mac';
+    heading.textContent='Starting your tool';description.textContent='Saving your request on this Mac before learning begins.';count.textContent='';changed('starting:'+generation,'Getting ready');
     for(const button of [open,retry,reconnect,edit,saved])button.hidden=true;
     stop.hidden=false;stop.textContent='Stop';stop.setAttribute('aria-disabled','false');allSteps.open=false;steps.querySelectorAll('li').forEach(node=>{node.dataset.state='waiting';node.removeAttribute('aria-current');node.querySelector('.build-step-state').textContent='Next';});
     onBusy(true);announce('starting','Starting your tool on this Mac.');focusStart();return generation;
@@ -108,7 +125,7 @@ export function toolBuildView(api,{onBusy=()=>{},onCreated=()=>{},onOpen=()=>{},
   }
   function requestStop(){
     if(finished||stop.getAttribute('aria-disabled')==='true')return;
-    stopRequested=true;motion('stopping');heading.textContent='Stopping…';changed('stopping','Waiting for a safe stop');description.textContent=jobId?'Waiting for the local process to stop safely.':'Waiting for the local queue to acknowledge the request, then stopping it.';count.textContent='';stop.textContent='Stopping…';stop.setAttribute('aria-disabled','true');announce('stopping','Stopping. Waiting for confirmation from this Mac.');void sendStop(generation).then(ok=>{if(ok)void poll(generation);});
+    stopRequested=true;motion('stopping');heading.textContent='Stopping…';description.textContent=jobId?'Waiting for the local process to stop safely.':'Waiting for the local queue to acknowledge the request, then stopping it.';count.textContent='';changed('stopping','Waiting for a safe stop');stop.textContent='Stopping…';stop.setAttribute('aria-disabled','true');announce('stopping','Stopping. Waiting for confirmation from this Mac.');void sendStop(generation).then(ok=>{if(ok)void poll(generation);});
   }
   async function finish(job,g){
     if(g!==generation)return;
@@ -120,9 +137,9 @@ export function toolBuildView(api,{onBusy=()=>{},onCreated=()=>{},onOpen=()=>{},
       if(!buildOutcome(tool))tool=(await api.get(`/api/tasks/${taskId}`)).toolResult;
       if(g!==generation)return;
       const outcome=buildOutcome(tool);if(!outcome)throw Error('The task finished without a verified saved tool.');
-      finished=true;panel.dataset.state='ready';motion('ready');heading.textContent=outcome.title;description.textContent=stopRequested?'The run finished before Stop took effect, and your saved tool is ready to use.':outcome.description;changed('ready','Saved on this Mac');steps.querySelectorAll('li').forEach(node=>{node.dataset.state='complete';node.removeAttribute('aria-current');node.querySelector('.build-step-state').textContent='Done';});open.hidden=false;
+      finished=true;panel.dataset.state='ready';motion('ready');count.textContent='';heading.textContent=outcome.title;description.textContent=stopRequested?'The run finished before Stop took effect, and your saved tool is ready to use.':outcome.description;changed('ready','Saved on this Mac');steps.querySelectorAll('li').forEach(node=>{node.dataset.state='complete';node.removeAttribute('aria-current');node.querySelector('.build-step-state').textContent='Done';});open.hidden=false;
     }else{
-      finished=true;panel.dataset.state=job.status;motion(job.status==='cancelled'?'stopped':'failed');
+      finished=true;panel.dataset.state=job.status;motion(job.status==='cancelled'?'stopped':'failed');count.textContent='';
       heading.textContent=job.status==='cancelled'?'Stopped':job.status==='interrupted'?'Creation was interrupted':'Your tool could not be created';
       description.textContent=job.status==='cancelled'?'This run stopped safely; your other tools are unchanged.':job.status==='interrupted'?'Your other tools are unchanged; review setup before trying again.':'No new tool was saved; review setup before trying again.';changed('terminal:'+job.status,'No new tool saved');steps.querySelectorAll('[data-state=current]').forEach(node=>{node.dataset.state='stopped';node.removeAttribute('aria-current');node.querySelector('.build-step-state').textContent='Stopped here';});
       retry.hidden=false;edit.hidden=false;
@@ -140,11 +157,11 @@ export function toolBuildView(api,{onBusy=()=>{},onCreated=()=>{},onOpen=()=>{},
       facts.textContent=JSON.stringify({jobId,taskId,job},null,2);
       if(terminal.has(job.status)){await finish(job,g);return;}
       if(job.cancel&&!stopRequested){stopRequested=true;stop.textContent='Stopping…';stop.setAttribute('aria-disabled','true');}
-      if(stopRequested){motion('stopping');heading.textContent='Stopping…';changed('stopping','Waiting for a safe stop');description.textContent='Waiting for the local process to stop safely.';count.textContent='';}
+      if(stopRequested){motion('stopping');heading.textContent='Stopping…';description.textContent='Waiting for the local process to stop safely.';count.textContent='';changed('stopping','Waiting for a safe stop');}
       else{
         const current=buildProgress(job,lastPhase);lastPhase=current.phase;motion(job.status==='queued'?'waiting':job.status==='running'?'active':'paused',current);heading.textContent=current.title;description.textContent=current.description;count.textContent=current.count;changed(job.status==='queued'?'queued':`step:${current.phase}:${current.title}:${current.description}`,job.status==='queued'?'Waiting to start':`Step ${current.phase+1} of ${phases.length}`);
         steps.querySelectorAll('li').forEach((node,i)=>{node.dataset.state=job.status==='queued'?'waiting':i<lastPhase?'complete':i===lastPhase?'current':'waiting';if(job.status==='running'&&i===lastPhase)node.setAttribute('aria-current','step');else node.removeAttribute('aria-current');node.querySelector('.build-step-state').textContent=node.dataset.state==='current'?'Now':node.dataset.state==='complete'?'Done':'Next';});
-        announce(`${job.status}:${current.phase}`,`${current.title}. ${current.description}`);
+        announce(`${job.status}:${current.phase}:${current.title}:${current.description}`,`${current.title}. ${current.description}`);
       }
       timer=setTimeout(()=>void poll(g),1000);
     }catch{if(g===generation)showRecovery('We cannot check the task right now. It may still be running on this Mac. Retry the connection to recover its saved status.');}
@@ -162,6 +179,6 @@ export function toolBuildView(api,{onBusy=()=>{},onCreated=()=>{},onOpen=()=>{},
     catch{if(g===generation)showRecovery('We could not confirm whether the request reached this Mac. Check saved tasks before creating another tool.',true);}
   }
   function resume(job,info,input){const g=reset(input,info);jobId=job.id;taskId=job.taskId;onCreated({taskId,jobId});void poll(g);}
-  function dispose(){generation++;clearTimeout(timer);transitionEffect?.cancel();motion('idle');panel.hidden=true;finished=true;onBusy(false);facts.textContent='';}
+  function dispose(){generation++;clearTimeout(timer);clearTransition();statusSnapshot=null;transitionKey='';motion('idle');panel.hidden=true;finished=true;onBusy(false);facts.textContent='';}
   return {element:panel,start,resume,dispose,focus:()=>{panel.scrollIntoView?.({block:'start'});(finished?panel.querySelector('.build-actions button:not([hidden])'):stop)?.focus({preventScroll:true});},get active(){return !panel.hidden;}};
 }

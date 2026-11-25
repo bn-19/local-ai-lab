@@ -411,3 +411,27 @@ main:focus { outline:none; }
 @media(prefers-reduced-motion:reduce) {
   .build-phase-fill { transition:none !important; }
 }
+
+/* One continuous operation surface. Controls stay outside the animated content. */
+.tool-build-surface { max-width:620px; padding-top:4px; -webkit-font-smoothing:antialiased; }
+.build-context { margin-bottom:22px; }
+.tool-build-surface .build-task { margin:0; color:var(--ink); font-size:14px; font-weight:550; line-height:1.55; }
+.build-file-context { margin:5px 0 0; color:var(--muted); font-size:12px; overflow-wrap:anywhere; }
+.build-status-shell { padding:28px; background:var(--surface); border:1px solid var(--line); border-radius:14px; }
+.build-live-status { position:relative; min-height:0; }
+.build-status-content { min-height:210px; }
+.build-status-outgoing { position:absolute; inset:0; pointer-events:none; }
+.build-status-shell h1 { font-size:26px; line-height:1.25; letter-spacing:-.6px; text-wrap:balance; }
+.build-status-shell .build-description { font-size:14px; line-height:1.65; margin-top:14px; min-height:47px; text-wrap:pretty; }
+.build-status-shell .build-step-label { font-size:12px; font-weight:550; margin-bottom:12px; }
+.build-status-shell .build-feedback { min-height:48px; margin-top:24px; gap:9px; align-content:start; }
+.build-status-shell .build-count { font-size:12px; font-weight:550; }
+.build-status-shell .build-phase-track { height:4px; }
+.tool-build-surface .build-actions { min-height:44px; margin-top:14px; }
+.build-status-shell .build-actions button { min-width:100px; min-height:42px; }
+.build-steps-disclosure { border-top:0; margin-top:18px; padding-top:0; }
+.build-steps-disclosure summary { min-height:40px; display:list-item; align-content:center; }
+.tool-build-surface .build-local-note { margin-top:12px; }
+.tool-build-surface .build-diagnostics { margin-top:18px; padding-top:14px; }
+.tool-build-surface .build-diagnostics summary { min-height:34px; align-content:center; }
+@media(max-width:720px) { .build-status-shell { padding:22px; } .build-status-content { min-height:224px; } }
