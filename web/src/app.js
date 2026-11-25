@@ -1,4 +1,6 @@
 import {visionView,pileResultView,pileEstimateView} from './vision.js';
+import {toolBuilderView,savedToolView} from './tools.js';
+import {toolBuildView} from './tool-build.js';
 import {modelInventoryView} from './model-inventory.js';
 import {showAgentLoop,hideAgentLoop} from './agent-loop.js';
 import { LocalAPI, selectActivityTask } from './api.js';
@@ -12,16 +14,32 @@ let selection=null,selectionKey='';
 const preferences=()=>({priority:$('model-priority').value,allowDownload:$('allow-download').checked,...($('download-budget').value!==''?{maxDownloadGB:Number($('download-budget').value)}:{})});
 const requestKey=()=>JSON.stringify([$ ('task').value.trim(),dataset?.id,preferences()]);
 let health=null, dataset=null, currentTask=null, activeJob=null, timer=null, sample=false, busy=false, pairing=false, epoch=0, taskLoad=0;
+const toolJob=async created=>{currentTask=created.taskId;taskLoad++;selectActivityTask(currentTask);sample=false;await watchJob(created.jobId,currentTask);};
+const toolBuilder=toolBuilderView(api,{getDataset:()=>dataset,onJob:toolJob,onError:message=>notify(message,true),onReview:reviewed=>{$('workspace-heading').hidden=reviewed;$('setup-workbench').dataset.reviewed=String(reviewed);},onBuild:async(body,context)=>{showBuild();await toolBuild.start(body,context);}});
+$('tool-builder-slot').append(toolBuilder);
+const toolBuild=toolBuildView(api,{
+  onBusy:value=>{busy=value;updateConnection();},
+  onCreated:created=>{currentTask=created.taskId;taskLoad++;selectActivityTask(currentTask);},
+  onOpen:async id=>{toolBuild.dispose();$('workspace-view').removeAttribute('data-building');await run(async()=>{await loadTask(id);view('workspace');$('dashboard').querySelector('input')?.focus();$('dashboard').scrollIntoView({block:'start'});});},
+  onSaved:refreshSavedCount,
+  onEdit:()=>{hideBuild();toolBuilder.resetReview();$('setup-workbench').hidden=false;$('workspace-heading').hidden=false;},
+  onShowSaved:()=>{view('saved');void run(renderSaved);}
+});
+$('setup-workbench').before(toolBuild.element);
+function showBuild(){
+  $('workspace-view').dataset.building='true';$('setup-workbench').hidden=true;$('workspace-heading').hidden=true;$('dashboard').hidden=true;$('job-panel').hidden=true;$('edit-setup').hidden=true;$('notice').hidden=true;
+}
+function hideBuild(){toolBuild.dispose();$('workspace-view').removeAttribute('data-building');}
 const views=['workspace','saved','activity','connection'];
 function notify(message, error=false) { $('notice').textContent=message; $('notice').className=error?'error':''; $('notice').hidden=false; }
 function view(name) {
   views.forEach(v=>$(v+'-view').hidden=v!==name);
   document.querySelectorAll('[data-view]').forEach(b=>{const active=b.dataset.view===name;b.classList.toggle('active',active);if(active)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');});
   $('main').focus({preventScroll:true});
-  $('page-name').textContent={workspace:'Workspace',saved:'Saved tasks',activity:'Monitor',connection:'Connect your Mac'}[name];
+  $('page-name').textContent={workspace:'Create a tool',saved:'Your tools & tasks',activity:'Activity',connection:'Connect your Mac'}[name];
 }
 function updateConnection() {
-  $('connection-badge').textContent=api.connected?'● Connected to your Mac':'○ Not connected';
+  $('connection-badge').textContent=api.connected?'● On this Mac':'○ Not connected';
   $('connection-badge').className='badge'+(api.connected?' connected':'');
   $('csv').disabled=!api.connected || busy;
   $('create-button').textContent=api.connected?(selection&&selectionKey===requestKey()?'Run task →':'Review setup →'):'Connect your Mac ↗';
@@ -34,6 +52,15 @@ function updateConnection() {
   $('connection-link').textContent=api.connected?'Connection ↗':'Connect your Mac ↗';
   $('readiness').hidden=true;
 }
+function renderCompanionCompatibility(){
+  const legacy=api.connected&&health?.features?.reusableTools!==true;
+  $('tool-builder-slot').hidden=legacy;
+  const quick=document.querySelector('.quick-task');if(legacy)quick.open=true;
+  $('workspace-heading').querySelector('h1').textContent=legacy?'Work with a local model':'Make a tool for your work';
+  $('workspace-heading').querySelector('.heading-note').textContent=legacy?'Your companion supports one-time tasks. Reusable tools need a newer Mac runtime.':'Create a sales-reporting tool you can use again.';
+  document.querySelector('.file-zone label').textContent=legacy?'Choose your file':'Start with your sales CSV';
+  document.querySelector('.file-zone p').textContent=legacy?'Your file stays on this Mac. Choose a CSV or a supported document.':'Sales reporting is the first supported learning task. Your file stays on this Mac.';
+}
 async function pair(token) {
   if(pairing)return;
   pairing=true;
@@ -43,20 +70,21 @@ async function pair(token) {
   health=await api.pair(token);
   if(generation!==epoch)return;
   $('pair-token').value='';
-  updateConnection(); renderRuntime();
+  renderCompanionCompatibility();updateConnection(); renderRuntime();
   $('connection-detail').textContent='Connected directly to your Mac. Your files are processed by the local companion.';
   $('notice').hidden=true;view('workspace');
   await refreshSavedCount();
   } finally {pairing=false;submit.disabled=false;}
 }
 function disconnect() {
-  hideAgentLoop();
+  if(holdActiveBuild())return;
+  hideAgentLoop();hideBuild();toolBuilder.resetReview();
   selection=null;selectionKey='';
   epoch++;api.disconnect();clearTimeout(timer);health=null;dataset=null;currentTask=null;activeJob=null;sample=false;busy=false;
   $('csv').value='';$('pair-token').value='';$('task').value='';$('saved-count').textContent='0';
   for(const id of ['profile','runtime-panel','job-panel','dashboard']) {$(id).hidden=true;$(id).replaceChildren();}
   $('setup-workbench').hidden=false;$('workspace-heading').hidden=false;$('edit-setup').hidden=true;
-  $('saved-list').replaceChildren();$('activity-list')?.replaceChildren();updateConnection();
+  $('saved-list').replaceChildren();$('activity-list')?.replaceChildren();renderCompanionCompatibility();updateConnection();
   $('connection-detail').textContent='Disconnected. Token and private results cleared from this page.';
   notify('Disconnected. Running local jobs continue; reconnect to inspect or cancel them.');
 }
@@ -117,7 +145,7 @@ async function importCSV() {
   if(file.size===0)throw new Error('This file is empty. Choose another file.');
   dataset=null;$('profile').hidden=true;$('profile').replaceChildren();
   const generation=epoch;busy=true;updateConnection();notify(`Importing ${file.name}…`);
-  try {if(/\.(jpe?g|png)$/i.test(file.name)){if(!visionPanel)throw Error('Photo recognition is experimental. Choose a CSV or document for this workspace.');await visionPanel.uploadPhoto(file);if(generation!==epoch)return;dataset=null;$('profile').hidden=true;$('notice').hidden=true;$('setup-workbench').hidden=true;$('workspace-heading').hidden=true;$('edit-setup').hidden=false;return;}const result=await api.upload(file);if(generation!==epoch)return;dataset=result;if(dataset.kind==='document'){$('profile').hidden=false;$('profile').replaceChildren(el('h3',{},dataset.name));}else renderProfile();$('notice').hidden=true;}
+  try {if(/\.(jpe?g|png)$/i.test(file.name)){if(!visionPanel)throw Error('Photo recognition is experimental. Choose a CSV or document for this workspace.');await visionPanel.uploadPhoto(file);if(generation!==epoch)return;dataset=null;$('profile').hidden=true;$('notice').hidden=true;$('setup-workbench').hidden=true;$('workspace-heading').hidden=true;$('edit-setup').hidden=false;return;}const result=await api.upload(file);if(generation!==epoch)return;dataset=result;toolBuilder.refreshDataset();if(dataset.kind==='document'){$('profile').hidden=false;$('profile').replaceChildren(el('h3',{},dataset.name));}else renderProfile();$('notice').hidden=true;}
   finally{if(generation===epoch){busy=false;updateConnection();}}
 }
 async function createTask(event) {
@@ -178,10 +206,13 @@ async function watchEvaluation(taskId,initialJobId) {
   await poll();
 }
 async function loadTask(id) {
+  if(holdActiveBuild())return;
   const generation=epoch, load=++taskLoad;const task=await api.get(`/api/tasks/${encodeURIComponent(id)}`);if(generation!==epoch||load!==taskLoad)return;
-  $('dashboard').replaceChildren();$('dashboard').hidden=true;
+  hideBuild();$('dashboard').replaceChildren();$('dashboard').hidden=true;
   currentTask=task.id;selectActivityTask(currentTask);sample=false;
   hideAgentLoop();
+  if(task.toolResult){$('dashboard').hidden=false;$('setup-workbench').hidden=true;$('workspace-heading').hidden=true;$('edit-setup').hidden=false;$('dashboard').replaceChildren(savedToolView(task.toolResult,task.toolRun,api,{onJob:toolJob,onError:message=>notify(message,true),preview:task.toolPreview}));return;}
+  if(task.kind==='tool'){const state=await api.get('/api/state');if(generation!==epoch||load!==taskLoad)return;const job=(state.jobs||[]).filter(j=>j.taskId===task.id&&j.kind==='tool-build').at(-1);if(job){showBuild();toolBuild.resume(job,{request:task.request,file:'Previously selected CSV'},{request:task.request,datasetId:task.datasetId,mapping:task.mapping});}else notify('No saved creation job was found. Your existing tools are unchanged.',true);return;}
   if(task.pileResult||task.pileEstimate){const r=task.pileResult??task.pileEstimate,render=r.kind==='pile-estimate'?pileEstimateView:pileResultView;$('dashboard').hidden=false;$('dashboard').replaceChildren(render(r));api.get('/api/photos/'+r.photoId).then(photo=>{if(generation===epoch&&load===taskLoad&&currentTask===task.id)$('dashboard').replaceChildren(render(r,photo.preview));}).catch(()=>{if(generation===epoch&&load===taskLoad&&currentTask===task.id)$('dashboard').append(el('p',{role:'status'},'Image unavailable — boxes not shown. Reopen this saved task to retry; counts above remain saved.'));});return;}
   if(task.visionResult){const r=task.visionResult;$('dashboard').hidden=false;$('dashboard').replaceChildren(el('h2',{id:'dashboard-title'},r.label),el('p',{},r.scope),el('p',{},r.scoreMeaning),el('p',{},'Saved local vision result · '+r.model.selected+' · '+r.model.revision));return;}
   if(task.textResult){renderDocument({...task,documentResult:{...task.textResult,name:'Answer',parts:[],model:task.model}});return;}
@@ -265,12 +296,24 @@ async function renderSaved() {
   const panel=$('saved-list');panel.replaceChildren(el('p',{class:'empty'},api.connected?'Loading saved tasks…':'Connect your Mac'));
   if(!api.connected)return;const state=await refreshSavedCount();panel.replaceChildren();
   if(!state.tasks?.length)panel.append(el('p',{class:'empty'},'No saved tasks'));
-  for(const task of state.tasks||[])panel.append(el('div',{class:'task-row'},el('div',{},el('h3',{},task.request||task.id),el('p',{},`${task.status} · ${task.id}`)),el('button',{class:'secondary',onClick:()=>run(async()=>{await loadTask(task.id);view('workspace');$('dashboard').scrollIntoView({block:'start'});})},'Open task')));
+  for(const task of state.tasks||[])panel.append(el('div',{class:'task-row'},el('div',{},el('h3',{},task.request||task.id),el('p',{},`${task.toolResult?'Reusable sales tool':'Saved task'} · ${task.status}`)),el('button',{class:'secondary',onClick:()=>run(async()=>{await loadTask(task.id);view('workspace');if(toolBuild.active)toolBuild.focus();else $('dashboard').scrollIntoView({block:'start'});})},task.toolResult?'Ask this tool':'Open task')));
 }
 async function renderActivity() { /* Live monitor is owned by the activity observer. */ }
-document.querySelectorAll('[data-view]').forEach(button=>button.addEventListener('click',()=>{view(button.dataset.view);run(async()=>{if(button.dataset.view==='saved')await renderSaved();if(button.dataset.view==='activity')await renderActivity();});}));
+document.querySelectorAll('[data-view]').forEach(button=>button.addEventListener('click',()=>{if(button.dataset.view==='workspace'){newTool();return;}view(button.dataset.view);run(async()=>{if(button.dataset.view==='saved')await renderSaved();if(button.dataset.view==='activity')await renderActivity();});}));
 $('connection-link').addEventListener('click',()=>view('connection'));
-$('edit-setup').addEventListener('click',()=>{$('setup-workbench').hidden=false;$('workspace-heading').hidden=false;$('edit-setup').hidden=true;$('task').focus();});
+function holdActiveBuild(){
+  if(!toolBuild.active||!busy)return false;
+  view('workspace');toolBuild.focus();notify('Wait for creation to finish, or choose Stop and wait for confirmation before opening another task.');return true;
+}
+document.querySelector('.brand').addEventListener('click',event=>{if(holdActiveBuild())event.preventDefault();});
+function newTool() {
+  if(holdActiveBuild())return;
+  if(busy){notify('Wait for the current task, or stop it in Activity.');return;}
+  hideBuild();toolBuilder.resetReview();taskLoad++;currentTask=null;selectActivityTask(null);view('workspace');
+  $('dashboard').replaceChildren();$('dashboard').hidden=true;$('setup-workbench').hidden=false;$('workspace-heading').hidden=false;$('edit-setup').hidden=true;
+  ($('tool-builder-slot').hidden?$('task'):$('tool-builder-slot').querySelector('input')).focus();
+}
+$('edit-setup').addEventListener('click',newTool);
 for(const id of ['task','model-priority','allow-download','download-budget'])$(id).addEventListener('input',()=>{selection=null;selectionKey='';renderRuntime();updateConnection();});
 $('task-form').addEventListener('submit',event=>run(()=>createTask(event)));
 $('csv').addEventListener('change',()=>run(importCSV));
@@ -282,18 +325,9 @@ window.addEventListener('pagehide',disconnect);
 updateConnection();
 // Both hosted and same-origin pages require explicit token pairing.
 
-// Store only the visual preference; pairing and task data remain in memory.
-const halloweenSwitch=$('halloween-mode');
-function setHalloweenMode(enabled) {
-  document.documentElement.dataset.theme=enabled?'halloween':'default';
-  halloweenSwitch.checked=enabled;
-  document.querySelector('meta[name="theme-color"]').content=enabled?'#221c29':'#f7f7f2';
-}
-try {setHalloweenMode(localStorage.getItem('local-lab-halloween')==='true');} catch {setHalloweenMode(false);}
-halloweenSwitch.addEventListener('change',()=>{
-  setHalloweenMode(halloweenSwitch.checked);
-  try {localStorage.setItem('local-lab-halloween',String(halloweenSwitch.checked));} catch { /* Theme still works without storage. */ }
-});
+// Retire only the old appearance preference, preserving all other local state.
+try { localStorage.removeItem('local-lab-halloween'); } catch { /* Storage may be unavailable. */ }
+delete document.documentElement.dataset.theme;
 // Native hosts wait for this event before submitting the in-memory pairing token.
 // It fires only after the form's preventDefault handler is installed.
 window.dispatchEvent(new window.Event('local-lab-web-ready'));

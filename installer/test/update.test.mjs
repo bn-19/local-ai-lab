@@ -11,11 +11,12 @@ async function fixture(t){
  const root=await mkdtemp(path.join(tmpdir(),'local lab update '));t.after(()=>rm(root,{recursive:true,force:true}));
  const runtime=path.join(root,'Runtime'),bundle=path.join(root,'bundle'),source=path.join(root,'local-ai-lab');
  for(const p of [runtime,bundle,source])await mkdir(p);
- for(const p of ['.local-lab/installer','.local-lab/models','.durable-actors','node_modules','web/node_modules'])await mkdir(path.join(runtime,p),{recursive:true});
+ for(const p of ['.local-lab/installer','.local-lab/models','.durable-actors','.venv/lib','node_modules','web/node_modules'])await mkdir(path.join(runtime,p),{recursive:true});
  for(const p of ['web/scripts','installer/macos'])await mkdir(path.join(source,p),{recursive:true});
  for(const f of ['package-lock.json','web/package-lock.json','installer/runtime-pins.json']){await mkdir(path.dirname(path.join(runtime,f)),{recursive:true});await writeFile(path.join(runtime,f),f.endsWith('package-lock.json')?JSON.stringify({version:'0.6.0.0',packages:{'':{version:'0.6.0.0'}}}):'{}');await writeFile(path.join(source,f),f.endsWith('package-lock.json')?JSON.stringify({version:'0.7.0.0',packages:{'':{version:'0.7.0.0'}}}):'{}');}
  await writeFile(path.join(runtime,'.local-lab/installer/release-manifest.json'),'{"old":true}');
  await writeFile(path.join(runtime,'.local-lab/models/weight'),'keep weights');await writeFile(path.join(runtime,'.durable-actors/saved'),'saved task');await writeFile(path.join(runtime,'personal.csv'),'unknown user file');
+ await writeFile(path.join(runtime,'.venv/lib/runtime-marker'),'keep training environment');
  await writeFile(path.join(source,'server.mjs'),'// new source');await writeFile(path.join(source,'web/scripts/build.mjs'),"import {mkdir,writeFile} from 'node:fs/promises';await mkdir('web/dist',{recursive:true});await writeFile('web/dist/index.html','new UI');");
  await mkdir(path.join(bundle,'installer/macos'),{recursive:true});await cp(new URL('../macos/common.sh',import.meta.url),path.join(bundle,'installer/macos/common.sh'));
  for(const f of ['Start.command','Stop.command'])await writeFile(path.join(bundle,f),'#!/bin/bash\n');
@@ -27,6 +28,7 @@ async function fixture(t){
 test('source update preserves tasks/weights and previous source without accounts or downloads',async t=>{
  const f=await fixture(t),result=await updateRuntime(f);
  assert.equal(await readFile(path.join(f.runtime,'.durable-actors/saved'),'utf8'),'saved task');assert.equal(await readFile(path.join(f.runtime,'.local-lab/models/weight'),'utf8'),'keep weights');
+ assert.equal(await readFile(path.join(f.runtime,'.venv/lib/runtime-marker'),'utf8'),'keep training environment');
  assert.equal(await readFile(path.join(f.runtime,'web/dist/index.html'),'utf8'),'new UI');assert.equal(await readFile(path.join(result.backup,'personal.csv'),'utf8'),'unknown user file');
  assert.equal(JSON.parse(await readFile(path.join(f.runtime,'.local-lab/installer/release-manifest.json'))).source.commit,'a'.repeat(40));
 });
@@ -35,6 +37,7 @@ test('failure or cancellation after data transfer rolls back the original instal
  const f=await fixture(t),c=new AbortController();
  await assert.rejects(updateRuntime(f,{signal:c.signal,afterTransfer:async()=>{if(cancelled)c.abort(Error('cancelled'));else throw Error('injected failure');}}),cancelled?/cancelled/:/injected/);
  assert.equal(await readFile(path.join(f.runtime,'.durable-actors/saved'),'utf8'),'saved task');assert.equal(await readFile(path.join(f.runtime,'.local-lab/installer/release-manifest.json'),'utf8'),'{"old":true}');
+ assert.equal(await readFile(path.join(f.runtime,'.venv/lib/runtime-marker'),'utf8'),'keep training environment');
  }
 });
 test('invalid source or changed dependencies never modify the installed data',async t=>{

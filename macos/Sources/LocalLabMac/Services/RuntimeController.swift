@@ -18,10 +18,13 @@ final class RuntimeController {
     init(paths: AppPaths? = nil) {
         if let paths { self.paths = paths }
         else {
-            self.paths = (try? .live()) ?? AppPaths(
-                applicationSupport: FileManager.default.homeDirectoryForCurrentUser
-                    .appendingPathComponent("Library/Application Support/Local Lab", isDirectory: true)
-            )
+            do { self.paths = try .live() }
+            catch {
+                // Invalid developer isolation must never fall back to the user's live runtime.
+                self.paths = AppPaths(applicationSupport: FileManager.default.temporaryDirectory.appendingPathComponent("local-lab-invalid-" + UUID().uuidString))
+                self.phase = .failed("Local Lab could not resolve its support directory. Check the explicit development path.")
+                self.prepared = true
+            }
         }
     }
 
@@ -109,10 +112,17 @@ final class RuntimeController {
         webSession = nil
         statusDetail = "Starting your local workspace. No cloud account is required."
         do {
+            let environment = ProcessInfo.processInfo.environment
+            let offlineCheck = environment["LOCAL_LAB_DEVELOPMENT_OFFLINE"] == "1"
+            guard !offlineCheck || environment["LOCAL_LAB_DEVELOPMENT_SUPPORT"] != nil else {
+                throw HostError.isolationRequired
+            }
+            let launcherArguments = RuntimeCommand.launcherArguments(launcher: paths.launcher, authorizeRelay: false, readyMarker: readyMarker)
+            let offlineProfile = "(version 1)(allow default)(deny network-outbound)(allow network-outbound (remote ip \"localhost:*\") (remote unix-socket))"
             let process = try ManagedProcess.launch(
                 helper: try helperURL(),
-                executable: node,
-                arguments: RuntimeCommand.launcherArguments(launcher: paths.launcher, authorizeRelay: false, readyMarker: readyMarker),
+                executable: offlineCheck ? URL(fileURLWithPath: "/usr/bin/sandbox-exec") : node,
+                arguments: offlineCheck ? ["-p", offlineProfile, node.path] + launcherArguments : launcherArguments,
                 currentDirectory: paths.runtimeRoot,
                 logURL: paths.hostLogs.appendingPathComponent("runtime-host.log"),
                 environment: ProcessInfo.processInfo.environment.merging(["LOCAL_LAB_RELAY_ENABLED": "0"]) { _, local in local }
@@ -271,7 +281,7 @@ final class RuntimeController {
 }
 
 private enum HostError: LocalizedError {
-    case missingBootstrap, missingHelper, bootstrapFailed, sourceUpdateFailed, runtimeExited, startupTimedOut
+    case missingBootstrap, missingHelper, bootstrapFailed, sourceUpdateFailed, runtimeExited, startupTimedOut, isolationRequired
     var errorDescription: String? {
         switch self {
         case .missingBootstrap: "This development build does not contain a verified bootstrap payload. Build a packaged candidate from an exact commit."
@@ -280,6 +290,7 @@ private enum HostError: LocalizedError {
         case .sourceUpdateFailed: "Local source update failed. Saved files were preserved; inspect the private source-update.log in Application Support/Local Lab/Host Logs before retrying."
         case .runtimeExited: "Local services exited before the workspace became ready. Check the private runtime logs."
         case .startupTimedOut: "Local services did not become ready within 90 seconds. They were stopped safely; check the private runtime logs and retry."
+        case .isolationRequired: "Offline development checks require an explicitly isolated support directory. Your installed runtime was not changed."
         }
     }
 }

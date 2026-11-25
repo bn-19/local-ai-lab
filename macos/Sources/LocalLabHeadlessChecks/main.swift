@@ -25,6 +25,19 @@ private final class SignalFixture: @unchecked Sendable {
 @main
 struct LocalLabHeadlessChecks {
     static func main() async throws {
+        let oldSupport = getenv("LOCAL_LAB_DEVELOPMENT_SUPPORT").map { String(cString: $0) }
+        defer {
+            if let oldSupport { setenv("LOCAL_LAB_DEVELOPMENT_SUPPORT", oldSupport, 1) }
+            else { unsetenv("LOCAL_LAB_DEVELOPMENT_SUPPORT") }
+        }
+        setenv("LOCAL_LAB_DEVELOPMENT_SUPPORT", "/private/tmp/local-lab-isolated-check", 1)
+        let isolatedPaths = try AppPaths.live()
+        try check(isolatedPaths.runtimeRoot.path == "/private/tmp/local-lab-isolated-check/Runtime", "explicit developer support path ignored")
+        setenv("LOCAL_LAB_DEVELOPMENT_SUPPORT", "relative-path", 1)
+        do { _ = try AppPaths.live(); throw CheckFailure.failed("relative isolation path accepted") }
+        catch is CheckFailure { throw CheckFailure.failed("relative isolation path accepted") }
+        catch { /* An invalid override must fail instead of using the installed runtime. */ }
+        unsetenv("LOCAL_LAB_DEVELOPMENT_SUPPORT")
         try check(TrustedNavigation.allows(URL(string: "http://127.0.0.1:4173/app")), "trusted /app path rejected")
         try check(TrustedNavigation.allows(URL(string: "http://127.0.0.1:4173/app/assets/main.js")), "trusted child path rejected")
         try check(!TrustedNavigation.allows(URL(string: "http://localhost:4173/app/")), "lookalike host allowed")

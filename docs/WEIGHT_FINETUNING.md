@@ -4,6 +4,8 @@ The local app now offers **Run weight fine-tuning** on a saved dashboard. This i
 
 ## Setup and run
 
+The new sales-reporting tool UI [downloads its own managed Python/MLX setup](MANAGED_TRAINING_RUNTIME.md); it does not require the manual virtual environment below. The commands here remain the legacy developer experiment path.
+
 The project Python environment needs Apple Silicon MLX:
 
 ```sh

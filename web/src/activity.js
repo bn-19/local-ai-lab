@@ -8,7 +8,7 @@ const current = el('p', {class:'activity-current'});
 const queue = el('p', {class:'activity-queue'});
 const rows = el('ol', {class:'activity-timeline'});
 const evidence = el('dl');
-const history = el('details', {open:true},el('summary',{},'Recorded steps'),rows);
+const history = el('details', {},el('summary',{},'Recorded steps'),rows);
 const details = el('details', {},el('summary',{},'Run details'),evidence);
 const nodes = new Map();
 let signature = '';
@@ -19,7 +19,7 @@ function render() {
   const next=JSON.stringify(view);
   if(next===signature)return;
   signature=next;
-  panel.hidden=false;
+  panel.hidden=!selectedTask;
   if(!panel.firstChild)panel.append(el('h2',{id:'live-activity-title'},'Activity'),announcement,current,queue,history,details);
   const label=view.error||view.status;
   if(announcement.textContent!==label)announcement.textContent=label;

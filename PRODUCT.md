@@ -22,11 +22,14 @@ Avoid a technical model-store front page, a dense terminal interface, unsupporte
 
 ## Design Principles
 
-1. Start with a person's task and desired output.
-2. Show what setup will do before downloads or training.
-3. Make data use and local/cloud boundaries understandable.
-4. Explain measured tradeoffs, including when tuning did not help.
-5. Reuse task recipes while leaving room for new capabilities.
+1. Put the user's job first: purpose and selected file before model infrastructure.
+2. Offer one clear next action at each step: Review setup, Create tool, Stop, Open saved tool.
+3. Replace completed setup with visible work in the same place. Never require Activity to understand a run.
+4. Use plain English and real on-device state. Counts belong to their actual phase; never invent an overall percentage or ETA.
+5. Explain file handling and downloads before consent. CSV rows are calculation inputs, not training examples for the current learning recipe.
+6. Keep diagnostics on demand. Model identities, scores, weights and raw logs are evidence, not the default story.
+7. Make endings explicit and recoverable. A retained original model is a valid outcome, not a failure. Existing tools stay separate from a new run.
+8. Keep keyboard controls stable during polling and announce phase changes without reading every iteration.
 
 ## Accessibility & Inclusion
 

@@ -6,7 +6,7 @@ import {promisify,parseArgs,isDeepStrictEqual} from 'node:util';
 import {fileURLToPath} from 'node:url';
 import {assertPortsFree,acquireRuntimeTransition} from './processes.mjs';
 const exec=promisify(execFile);
-const mutable=['.local-lab','.durable-actors','node_modules','web/node_modules'];
+const mutable=['.local-lab','.durable-actors','.venv','node_modules','web/node_modules'];
 function dependencyIdentity(bytes){const value=JSON.parse(bytes);delete value.version;if(value.packages?.[''])delete value.packages[''].version;return value;}
 async function exists(p){try{return await lstat(p);}catch(e){if(e.code==='ENOENT')return null;throw e;}}
 

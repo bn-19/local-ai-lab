@@ -12,6 +12,7 @@ test('ordinary CSV workflows share follow-up controls and never auto-enable demo
  globalThis.fetch=async url=>new Response(JSON.stringify(url.endsWith('/health')?{machine:{},runtimes:{},models:[]}:url.endsWith('/state')?{tasks,jobs:[]}:tasks.find(t=>url.endsWith('/tasks/'+t.id))),{headers:{'Content-Type':'application/json'}});
  try{
   await import('../src/app.js');document.getElementById('pair-token').value='fixture';document.getElementById('pair-form').dispatchEvent(new window.Event('submit',{cancelable:true}));await flush();
+  assert.equal(document.getElementById('tool-builder-slot').hidden,true);assert.equal(document.querySelector('.quick-task').open,true);assert.match(document.getElementById('workspace-heading').textContent,/one-time tasks/);
   document.querySelector('[data-view=saved]').dispatchEvent(new window.Event('click'));await flush();
   const buttons=[...document.querySelectorAll('#saved-list button')];
   for(const button of buttons){button.dispatchEvent(new window.Event('click'));await flush();assert.ok(document.getElementById('followup'));assert.equal(document.querySelector('[data-workflow=improve]'),null);assert.equal(document.querySelector('#agent-loop-panel'),null);assert.doesNotMatch(document.getElementById('dashboard').textContent,/Train candy|Synthetic benchmark|Average matchup win rate/);}

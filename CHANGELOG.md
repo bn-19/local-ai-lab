@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.8.0.0] - 2026-11-24
+
+### Added
+- Create reusable whole-file sales-reporting tools with verified local model setup, genuine QLoRA weight adaptation, held-out comparison and critical-behavior promotion gates.
+- Download and verify app-owned Python and pinned learning wheels without global Python, administrator access or a cloud account.
+- Bind saved tools to exact base, adapter, harness and runtime identities; reopen and run them locally with explicit calculation review.
+
+### Changed
+- Put reusable tools first in the Mac interface, with plain-language setup, one live creation state, real phase-local counts, stable Stop and optional diagnostics.
+- Add event-driven tool-assembly motion with a static reduced-motion alternative; retain one-time tasks for older companions used with the hosted frontend.
+
+### Fixed
+- Drain detached local workers and persist cancellation before Quit; keep durable services available during cleanup and retain failure evidence when drainage is unconfirmed.
+- Preserve pending creation and Stop across navigation, and recover interrupted connections without silently duplicating a creation request.
+- Preserve the managed learning runtime through source updates alongside saved tasks and local weights.
+
+### Removed
+- Retire Halloween controls, seasonal behavior and unused theme assets from the working interface; retain historical documentation.
+
+This source merge does not publish a new downloadable Mac ZIP. The existing v0.7.0.0 download remains available until a separately verified native release.
+
 ## [0.7.0.0] - 2026-11-01
 
 ### Added
