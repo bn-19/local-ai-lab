@@ -28,6 +28,8 @@ Use actual connection and job states: downloading, queued, running, evaluating, 
 
 Short color/opacity transitions only; honor prefers-reduced-motion. Native labelled file input and buttons, aria-live feedback, semantic headings and visible focus. Explain the output in words, never color alone.
 
-## Creation status motion
+## Creation status and motion
 
-Waiting uses soft opacity dots, never the active-work ring. Active work uses a small rotating arc; when backend state reports a valid phase-local count, a thin track fills to exactly that count. Only transform/opacity animate. Keep the same nodes and animation across polls, reset the track instantly when its phase changes, and reserve the feedback row's space. Do not animate progress between backend reports, guess an ETA or imply an overall percentage. Stop, recovery, disconnection and terminal states are static. Reduced motion retains the status label, static arc/dots and exact count bar with animations and transitions disabled.
+Lead with one live status: a small Step N of 4 label only during active work, one plain-language heading, one helpful sentence, actual current-step progress when available, and a visible Stop. Queued requests say Waiting to start and never mark a step active. Hide the numbered workflow under View all steps; its rows are explanatory, not radio controls. Keep diagnostics separately under Details.
+
+Motion marks a meaningful state change with a brief opacity/4px transform transition. Count-only polls never replay that transition or replace controls. A thin bar moves only to a real current-step count, with an immediate reset between steps; no overall percentage, ETA, looping spinner or idle motion. Stopping and terminal copy replace active work immediately. Reduced motion skips status transitions and bar easing while retaining all information.
