@@ -52,6 +52,15 @@ function updateConnection() {
   $('connection-link').textContent=api.connected?'Connection ↗':'Connect your Mac ↗';
   $('readiness').hidden=true;
 }
+function renderCompanionCompatibility(){
+  const legacy=api.connected&&health?.features?.reusableTools!==true;
+  $('tool-builder-slot').hidden=legacy;
+  const quick=document.querySelector('.quick-task');if(legacy)quick.open=true;
+  $('workspace-heading').querySelector('h1').textContent=legacy?'Work with a local model':'Make a tool for your work';
+  $('workspace-heading').querySelector('.heading-note').textContent=legacy?'Your companion supports one-time tasks. Reusable tools need a newer Mac runtime.':'Create a sales-reporting tool you can use again.';
+  document.querySelector('.file-zone label').textContent=legacy?'Choose your file':'Start with your sales CSV';
+  document.querySelector('.file-zone p').textContent=legacy?'Your file stays on this Mac. Choose a CSV or a supported document.':'Sales reporting is the first supported learning task. Your file stays on this Mac.';
+}
 async function pair(token) {
   if(pairing)return;
   pairing=true;
@@ -61,7 +70,7 @@ async function pair(token) {
   health=await api.pair(token);
   if(generation!==epoch)return;
   $('pair-token').value='';
-  updateConnection(); renderRuntime();
+  renderCompanionCompatibility();updateConnection(); renderRuntime();
   $('connection-detail').textContent='Connected directly to your Mac. Your files are processed by the local companion.';
   $('notice').hidden=true;view('workspace');
   await refreshSavedCount();
@@ -75,7 +84,7 @@ function disconnect() {
   $('csv').value='';$('pair-token').value='';$('task').value='';$('saved-count').textContent='0';
   for(const id of ['profile','runtime-panel','job-panel','dashboard']) {$(id).hidden=true;$(id).replaceChildren();}
   $('setup-workbench').hidden=false;$('workspace-heading').hidden=false;$('edit-setup').hidden=true;
-  $('saved-list').replaceChildren();$('activity-list')?.replaceChildren();updateConnection();
+  $('saved-list').replaceChildren();$('activity-list')?.replaceChildren();renderCompanionCompatibility();updateConnection();
   $('connection-detail').textContent='Disconnected. Token and private results cleared from this page.';
   notify('Disconnected. Running local jobs continue; reconnect to inspect or cancel them.');
 }
@@ -302,7 +311,7 @@ function newTool() {
   if(busy){notify('Wait for the current task, or stop it in Activity.');return;}
   hideBuild();toolBuilder.resetReview();taskLoad++;currentTask=null;selectActivityTask(null);view('workspace');
   $('dashboard').replaceChildren();$('dashboard').hidden=true;$('setup-workbench').hidden=false;$('workspace-heading').hidden=false;$('edit-setup').hidden=true;
-  $('tool-builder-slot').querySelector('input').focus();
+  ($('tool-builder-slot').hidden?$('task'):$('tool-builder-slot').querySelector('input')).focus();
 }
 $('edit-setup').addEventListener('click',newTool);
 for(const id of ['task','model-priority','allow-download','download-budget'])$(id).addEventListener('input',()=>{selection=null;selectionKey='';renderRuntime();updateConnection();});

@@ -75,3 +75,15 @@ test('startup refuses a runtime held by a source update; released lock permits a
  }finally{await release();}
  const again=await acquireRuntimeTransition(d);await release();await assert.rejects(acquireRuntimeTransition(d),/already running or updating/);await again();
 });
+
+test('service shutdown drains the server before stopping its durable dependencies',async()=>{
+ const {stopServices}=await import('../processes.mjs');const actor=ownedProcess(process.execPath,['-e','setInterval(()=>{},1000)'],{stdio:'ignore'});actor.kind='actors';
+ const d=await mkdtemp(path.join(os.tmpdir(),'local-lab-stop-order-')),result=path.join(d,'drained');
+ const server=ownedProcess(process.execPath,['-e',"process.on('SIGTERM',()=>{try{process.kill(Number(process.argv[1]),0);require('fs').writeFileSync(process.argv[2],'dependency alive');setTimeout(()=>process.exit(0),100);}catch{process.exit(2);}});console.log('ready');setInterval(()=>{},1000)",String(actor.pid),result],{stdio:['ignore','pipe','ignore']});server.kind='server';
+ try{await new Promise(resolve=>server.child.stdout.once('data',resolve));assert.deepEqual(await stopServices([actor,server]),[]);assert.equal(await readFile(result,'utf8'),'dependency alive');assert.equal(server.child.exitCode,0);}finally{await stopOwned([server,actor]);await rm(d,{recursive:true,force:true});}
+});
+
+test('executor drain failure remains an explicit launcher cleanup failure',async()=>{
+ const {stopServices}=await import('../processes.mjs');const server=ownedProcess(process.execPath,['-e',"process.on('SIGTERM',()=>process.exit(2));console.log('ready');setInterval(()=>{},1000)"],{stdio:['ignore','pipe','ignore']});server.kind='server';
+ try{await new Promise(resolve=>server.child.stdout.once('data',resolve));assert.deepEqual(await stopServices([server]),[server.pid]);assert.equal(server.cleanupErrors[0].code,'EXECUTOR_DRAIN_UNCONFIRMED');}finally{await stopOwned([server]);}
+});

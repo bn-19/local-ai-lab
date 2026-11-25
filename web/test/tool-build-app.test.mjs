@@ -7,7 +7,7 @@ test('saved-task navigation cannot discard Stop before creation acknowledgement'
  const original=globalThis.fetch;let acknowledge,stopped=false,creates=0,cancels=0;
  const dataset={id:'csv',name:'sales.csv',rows:7,columns:['InvoiceNo','StockCode','Quantity','UnitPrice'].map(name=>({name,type:'INTEGER'}))};
  globalThis.fetch=async (url,options)=>{let result;
-  if(url.endsWith('/api/health'))result={machine:{},models:[],runtimes:{}};
+  if(url.endsWith('/api/health'))result={machine:{},models:[],runtimes:{},features:{reusableTools:true}};
   else if(url.endsWith('/api/state'))result={tasks:[{id:'old',request:'Existing tool',status:'ready'}],jobs:[]};
   else if(url.endsWith('/api/datasets'))result=dataset;
   else if(url.endsWith('/api/tools/recommend'))result={compatible:true,model:{},setup:{runtimeReady:true,modelCached:true},reasons:[]};
@@ -21,6 +21,7 @@ test('saved-task navigation cannot discard Stop before creation acknowledgement'
  const click=node=>node.dispatchEvent(new window.Event('click'));
  try{
   await import('../src/app.js');document.getElementById('pair-token').value='fixture';document.getElementById('pair-form').dispatchEvent(new window.Event('submit',{cancelable:true}));await flush();
+  assert.equal(document.getElementById('tool-builder-slot').hidden,false);
   Object.defineProperty(document.getElementById('csv'),'files',{value:[{name:'sales.csv',size:111}]});document.getElementById('csv').dispatchEvent(new window.Event('change'));await flush();
   document.querySelector('.tool-builder form').dispatchEvent(new window.Event('submit',{cancelable:true}));await flush();click(document.querySelector('[data-action=start-learning]'));await flush();
   assert.equal(document.getElementById('setup-workbench').hidden,true);assert.equal(document.querySelector('.tool-build-surface').hidden,false);click(document.querySelector('[data-action=stop-build]'));

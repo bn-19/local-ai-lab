@@ -1,3 +1,4 @@
+import {installShutdownHandlers} from './lib/server-shutdown.mjs';
 import {visionRoot,visionStatus,createVisionTask} from './lib/vision.mjs';
 import {recommendTool,createToolTask,queueToolRun,queueToolCalculation} from './lib/reusable-tools.mjs';
 import {imageType,visionAction} from './lib/vision-policy.mjs';
@@ -314,9 +315,4 @@ server.listen(port, "127.0.0.1", () => {
   );
   console.log("Approved hosted origin:", hostedOrigin ?? "none");
 });
-for (const sig of ["SIGTERM", "SIGINT"])
-  process.once(sig, () => {
-    stopWorker();
-    server.close(() => process.exit(0));
-    setTimeout(() => process.exit(0), 3000).unref();
-  });
+installShutdownHandlers(server,stopWorker);

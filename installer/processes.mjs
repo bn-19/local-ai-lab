@@ -22,6 +22,14 @@ export async function stopOwned(records,{kill=(pid,signal)=>process.kill(pid,sig
  if(!survivors.length)await Promise.all(records.map(r=>r.done));
  return survivors;
 }
+// Stop the executor while its model and durable actor dependencies are still available.
+export async function stopServices(records,options={}){
+ const servers=records.filter(r=>r.kind==='server'),dependencies=records.filter(r=>r.kind!=='server');
+ const unresolved=await stopOwned(servers,{graceMs:6000,...options});
+ const failed=servers.filter(r=>(r.child.exitCode!==null&&r.child.exitCode!==0)||r.child.signalCode==='SIGKILL');
+ for(const record of failed){record.cleanupErrors??=[];record.cleanupErrors.push({code:'EXECUTOR_DRAIN_UNCONFIRMED',operation:'shutdown'});}
+ return [...new Set([...unresolved,...failed.map(r=>r.pid),...await stopOwned(dependencies,options)])];
+}
 export async function ensureActorSecret(file){
  try{const handle=await open(file,'wx',0o600);try{await handle.writeFile(randomBytes(32).toString('hex'));}finally{await handle.close();}}catch(e){if(e.code!=='EEXIST')throw e;}
  const stat=await lstat(file);if(!stat.isFile()||stat.isSymbolicLink())throw Error('Actor secret must be a regular local file.');
