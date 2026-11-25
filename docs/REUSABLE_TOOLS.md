@@ -1,15 +1,15 @@
-# Reusable local tools — development slice
+# Reusable local tools — source v0.8.0.0
 
-This branch adds one genuine learning workflow: **whole-file sales reporting**. The public v0.7 download does not include it yet. Other tasks (email, image generation, general model training) remain outside this verified slice.
+Source v0.8.0.0 adds one genuine learning workflow: **whole-file sales reporting**. The public v0.7 download does not include it yet. Other tasks (email, image generation, general model training) remain outside this verified slice.
 
 ## Use it
 
-1. Open the Mac app and choose a sales CSV under **Your data**.
-2. Open **Teach a reusable local tool**. Describe the sales-reporting job and map order reference, product code, quantity and price columns.
-3. Choose **Review learning setup**. The app checks the task, Apple Silicon, system/available memory, disk and the local training runtime. It selects one reviewed trainable Qwen3-4B MLX recipe, not a universal best model.
-4. Approve **Download setup, learn, compare and save tool** (or cache reuse). Setup downloads use the internet; learning uses authored synthetic questions locally. Uploaded CSV rows are not automatically training examples.
+1. Open a Mac app built from this source and choose a sales CSV under **Start with your sales CSV**.
+2. Under **Describe the job**, describe the sales-reporting task and use **Match your file columns** for order reference, product code, quantity and price.
+3. Choose **Review setup**. The app checks the task, Apple Silicon, system/available memory, disk and the local training runtime. It selects one reviewed trainable Qwen3-4B MLX recipe, not a universal best model.
+4. Review the expected downloads, file handling and scope, then choose **Create tool** (or cache reuse). Setup downloads use the internet; learning uses authored synthetic questions locally. Uploaded CSV rows are not automatically training examples.
 5. The Device queue owns one reservation through setup, baseline, actual QLoRA training, candidate evaluation and artifact verification. No nested heavy job is queued while holding that reservation.
-6. Inspect the held-out comparison. Promotion requires strict aggregate improvement, nonzero trained LoRA-B weights, every critical case passing, and no baseline-passing critical regression. Ties or failed gates retain the unchanged base model.
+6. Follow the real creation phases; choose **Open saved tool** when Ready. The held-out comparison is under **About this tool and its saved setup**. Promotion requires strict aggregate improvement, nonzero trained LoRA-B weights, every critical case passing, and no baseline-passing critical regression. Ties or failed gates retain the unchanged base model.
 7. Ask the saved tool a new question, or attach another CSV with the same mapped columns. Review its interpretation and explicitly confirm the whole-file metric, refund handling and included rows before a separate queued calculation runs. Saved tasks reopen the same tool. Neither the latest adapter nor a cloud service is an execution fallback.
 
 This recipe covers revenue, average order value, unique order count, product rankings and missing-cost clarification for profit/margin. It includes refunds unless the question explicitly excludes negative quantities. Merchandise scope excludes exactly POST/ADJUST. No dates, countries or arbitrary filters; recognized unsupported filter requests are rejected before calculation. The language checks are bounded and not a general intent verifier. Always inspect the returned plan.

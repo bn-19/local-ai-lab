@@ -1,6 +1,6 @@
 {
   "name": "local-ai-lab",
-  "version": "0.7.0.0",
+  "version": "0.8.0.0",
   "private": true,
   "description": "Local-first model tasks and CSV analytics with a durable device queue and optional Relay",
   "type": "module",
