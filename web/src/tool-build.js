@@ -30,6 +30,37 @@ export function buildOutcome(tool){
   if(tool?.status!=='ready'||!tool.binding||!['adapter','base'].includes(tool.selected)&&tool.selected!=='baseline')return null;
   return {title:'Your tool is ready',description:tool.selected==='adapter'?'Your tool passed its checks and is ready to use.':'The tuned version did not pass all improvement checks, so your tool uses the original model.',scope};
 }
+// A small assembly instrument: motion acknowledges real state changes, never elapsed time.
+export function toolAssemblyView(){
+  const svg=(tag,attrs={})=>{const n=document.createElementNS('http://www.w3.org/2000/svg',tag);for(const [k,v] of Object.entries(attrs))n.setAttribute(k,String(v));return n;};
+  const image=svg('svg',{viewBox:'0 0 128 116',focusable:'false'});
+  const pieces=[],contacts=[];
+  for(let i=0;i<3;i++){
+    const layer=svg('g',{transform:`translate(0 ${(2-i)*23})`,'data-layer':i});
+    const piece=svg('g',{class:'assembly-piece'});
+    piece.append(svg('path',{d:'M18 31 64 53 110 31v8L64 61 18 39Z',class:'assembly-edge'}),svg('path',{d:'M64 9 110 31 64 53 18 31Z',class:'assembly-face'}));
+    const dots=[svg('circle',{cx:48,cy:31,r:2.5}),svg('circle',{cx:64,cy:23,r:2.5}),svg('circle',{cx:80,cy:31,r:2.5})];
+    for(const dot of dots){dot.setAttribute('class','assembly-contact');piece.append(dot);}
+    layer.append(piece);image.append(layer);pieces.push({layer,piece});contacts.push(dots);
+  }
+  const seal=svg('g',{class:'assembly-seal'});seal.append(svg('path',{d:'m54 30 8 8 15-17',fill:'none','stroke-width':3,'stroke-linecap':'round','stroke-linejoin':'round'}));image.append(seal);
+  const element=el('div',{class:'build-instrument','aria-hidden':'true','data-mode':'waiting'},image);
+  let key='',effects=[];
+  const cancel=()=>{for(const effect of effects)effect?.cancel();effects=[];};
+  function update(mode,current){
+    const active=mode==='active';const phase=active?Math.min(current?.phase??0,3):null;
+    const next=active?`${phase}:${current?.progress?.completed??'uncounted'}/${current?.progress?.total??''}`:mode;
+    if(next===key)return;key=next;cancel();element.dataset.mode=mode;
+    if(active||mode==='ready')pieces.forEach(({layer},i)=>layer.dataset.state=mode==='ready'||i<phase?'settled':i===phase?'working':'future');
+    else if(['waiting','idle'].includes(mode))pieces.forEach(({layer})=>layer.dataset.state='future');
+    // This is a finite acknowledgement of a backend event, not an ongoing activity claim.
+    if(globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches||!active)return;
+    const index=Math.min(phase,2),{piece}=pieces[index];
+    const move=piece.animate?.([{transform:'translateY(-7px)',opacity:.55},{transform:'translateY(0)',opacity:1}],{duration:420,easing:'cubic-bezier(.22,1,.36,1)'});effects.push(move);
+    contacts[index].forEach((dot,i)=>effects.push(dot.animate?.([{opacity:.2,transform:'scale(.55)'},{opacity:1,transform:'scale(1)'}],{duration:250,delay:i*55,easing:'cubic-bezier(.22,1,.36,1)'})));
+  }
+  return {element,update,dispose:()=>{cancel();key='';element.dataset.mode='idle';}};
+}
 export function toolBuildView(api,{onBusy=()=>{},onCreated=()=>{},onOpen=()=>{},onSaved=()=>{},onEdit=()=>{},onShowSaved=()=>{}}={}){
   let generation=0,timer,jobId=null,taskId=null,body=null,context={},lastPhase=0,stopRequested=false,stopSending=false,finished=false,polling=false,announceKey='',lastJob=null;
   const heading=el('h1',{id:'build-title',tabindex:'-1'},'Starting on this Mac');
@@ -38,8 +69,11 @@ export function toolBuildView(api,{onBusy=()=>{},onCreated=()=>{},onOpen=()=>{},
   const fill=el('span',{class:'build-phase-fill'});
   const track=el('div',{class:'build-phase-track',role:'progressbar','aria-label':'Current step progress','aria-valuemin':'0','aria-live':'off',hidden:true},fill);
   const feedback=el('div',{class:'build-feedback','data-motion':'idle'},count,track);
+  const assembly=toolAssemblyView();
+  const meter=el('div',{class:'build-work-meter'},assembly.element,feedback);
   let progressPhase=null,progressValue=null;
   function motion(mode,current=null){
+    assembly.update(mode,current);
     const counted=mode==='active'&&current?.progress;
     const next=counted?'counted':mode;
     if(feedback.dataset.motion!==next)feedback.dataset.motion=next;
@@ -59,8 +93,8 @@ export function toolBuildView(api,{onBusy=()=>{},onCreated=()=>{},onOpen=()=>{},
     }
   }
   const stepLabel=el('p',{class:'build-step-label'},'Getting ready');
-  const statusContent=el('div',{class:'build-status-content'},stepLabel,heading,description,feedback);
-  const liveStatus=el('div',{class:'build-live-status'},statusContent);
+  const statusContent=el('div',{class:'build-status-content'},stepLabel,heading,description);
+  const liveStatus=el('div',{class:'build-live-status'},statusContent,meter);
   let transitionKey='',statusSnapshot=null,transitionEffects=[],outgoing=null;
   const reducedMotion=()=>Boolean(globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches);
   function clearTransition(){for(const effect of transitionEffects)effect?.cancel();transitionEffects=[];outgoing?.remove();outgoing=null;}
@@ -179,6 +213,6 @@ export function toolBuildView(api,{onBusy=()=>{},onCreated=()=>{},onOpen=()=>{},
     catch{if(g===generation)showRecovery('We could not confirm whether the request reached this Mac. Check saved tasks before creating another tool.',true);}
   }
   function resume(job,info,input){const g=reset(input,info);jobId=job.id;taskId=job.taskId;onCreated({taskId,jobId});void poll(g);}
-  function dispose(){generation++;clearTimeout(timer);clearTransition();statusSnapshot=null;transitionKey='';motion('idle');panel.hidden=true;finished=true;onBusy(false);facts.textContent='';}
+  function dispose(){generation++;clearTimeout(timer);clearTransition();statusSnapshot=null;transitionKey='';motion('idle');assembly.dispose();panel.hidden=true;finished=true;onBusy(false);facts.textContent='';}
   return {element:panel,start,resume,dispose,focus:()=>{panel.scrollIntoView?.({block:'start'});(finished?panel.querySelector('.build-actions button:not([hidden])'):stop)?.focus({preventScroll:true});},get active(){return !panel.hidden;}};
 }

@@ -419,7 +419,7 @@ main:focus { outline:none; }
 .build-file-context { margin:5px 0 0; color:var(--muted); font-size:12px; overflow-wrap:anywhere; }
 .build-status-shell { padding:28px; background:var(--surface); border:1px solid var(--line); border-radius:14px; }
 .build-live-status { position:relative; min-height:0; }
-.build-status-content { min-height:210px; }
+.build-status-content { min-height:122px; }
 .build-status-outgoing { position:absolute; inset:0; pointer-events:none; }
 .build-status-shell h1 { font-size:26px; line-height:1.25; letter-spacing:-.6px; text-wrap:balance; }
 .build-status-shell .build-description { font-size:14px; line-height:1.65; margin-top:14px; min-height:47px; text-wrap:pretty; }
@@ -434,4 +434,25 @@ main:focus { outline:none; }
 .tool-build-surface .build-local-note { margin-top:12px; }
 .tool-build-surface .build-diagnostics { margin-top:18px; padding-top:14px; }
 .tool-build-surface .build-diagnostics summary { min-height:34px; align-content:center; }
-@media(max-width:720px) { .build-status-shell { padding:22px; } .build-status-content { min-height:224px; } }
+@media(max-width:720px) { .build-status-shell { padding:22px; } .build-status-content { min-height:144px; } }
+
+/* The tool takes shape only in response to real work events. No idle or timed loop. */
+.build-work-meter { display:grid; grid-template-columns:88px minmax(0,1fr); gap:20px; align-items:center; min-height:88px; margin-top:14px; }
+.build-status-shell .build-work-meter .build-feedback { margin:0; min-height:48px; }
+.build-instrument { width:88px; height:88px; contain:layout paint; color:var(--pine); }
+.build-instrument svg { display:block; width:100%; height:100%; overflow:visible; }
+.assembly-face { fill:var(--surface); stroke:var(--line); stroke-width:1.5; stroke-linejoin:round; }
+.assembly-edge { fill:var(--bg); stroke:var(--line); stroke-width:1.5; stroke-linejoin:round; }
+.assembly-contact { fill:var(--line); transform-box:fill-box; transform-origin:center; }
+.assembly-piece { transform-box:fill-box; transform-origin:center; }
+[data-state=settled] > .assembly-piece .assembly-face { fill:var(--soft); stroke:var(--pine); }
+[data-state=settled] > .assembly-piece .assembly-edge { stroke:var(--pine); }
+[data-state=working] > .assembly-piece .assembly-face { fill:var(--soft); stroke:var(--pine); stroke-width:2; }
+[data-state=working] .assembly-contact { fill:var(--pine); }
+.assembly-seal { opacity:0; stroke:var(--pine); }
+.build-instrument[data-mode=ready] .assembly-seal { opacity:1; }
+.build-instrument[data-mode=ready] .assembly-contact { opacity:0; }
+.build-instrument:is([data-mode=paused],[data-mode=stopping],[data-mode=stopped],[data-mode=failed],[data-mode=idle]) { opacity:.45; }
+/* The reduced-motion instrument keeps a deliberate, legible phase composition. */
+@media(prefers-reduced-motion:reduce) { .assembly-piece,.assembly-contact { animation:none !important; transition:none !important; } }
+@media(max-width:520px) { .build-work-meter { grid-template-columns:72px minmax(0,1fr); gap:14px; } .build-instrument { width:72px; height:80px; } }

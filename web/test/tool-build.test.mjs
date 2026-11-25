@@ -1,5 +1,5 @@
 import test from 'node:test';import assert from 'node:assert/strict';import {parseHTML} from 'linkedom';
-import {toolBuildView,buildProgress,buildOutcome} from '../src/tool-build.js';
+import {toolBuildView,buildProgress,buildOutcome,toolAssemblyView} from '../src/tool-build.js';
 const flush=async()=>{for(let i=0;i<8;i++)await new Promise(r=>setImmediate(r));};
 function dom(t){const {document,window}=parseHTML('<html><body></body></html>');globalThis.document=document;globalThis.Node=window.Node;window.HTMLElement.prototype.scrollIntoView=()=>{};t.after(()=>{delete globalThis.document;delete globalThis.Node;});return {document,window,click:node=>node.dispatchEvent(new window.Event('click'))};}
 const tool={id:'new-tool',status:'ready',selected:'adapter',binding:{fingerprint:'immutable'},evaluation:{}};
@@ -58,7 +58,7 @@ test('invalid worker counts never produce a progress value',()=>{
 });
 test('reduced motion statically retains the status and real-count bar without animation',async()=>{
  const {readFile}=await import('node:fs/promises');const css=await readFile(new URL('../src/styles.css',import.meta.url),'utf8');
- const reduced=css.slice(css.lastIndexOf('@media(prefers-reduced-motion:reduce)'));
+ const reduced=css.slice(css.indexOf('@media(prefers-reduced-motion:reduce)'));
  assert.match(reduced,/build-phase-fill\s*\{ transition:none !important/);assert.doesNotMatch(css,/@keyframes build-(wait|work)/);
 });
 test('one live status hides the workflow, and transitions only when the state changes',async t=>{
@@ -84,7 +84,23 @@ test('phase handoff preserves the real prior state, hides its snapshot from acce
  const flow=toolBuildView({post:async()=>created,get:async()=>jobs[Math.min(index++,1)]});document.body.append(flow.element);await flow.start({request:'sales'},{file:'sales.csv'});
  const stop=flow.element.querySelector('[data-action=stop-build]'),disclosure=flow.element.querySelector('.build-steps-disclosure');disclosure.open=true;
  t.mock.timers.tick(1000);await flush();const old=flow.element.querySelector('.build-status-outgoing');
- assert.match(old.textContent,/Learning from examples/);assert.match(old.textContent,/10 of 120/);assert.equal(old.getAttribute('aria-hidden'),'true');assert.ok(old.hasAttribute('inert'));assert.equal(old.querySelector('[id]'),null);assert.equal(old.querySelector('button'),null);
+ assert.match(old.textContent,/Learning from examples/);assert.equal(old.querySelector('.build-work-meter'),null,'the measured meter remains stable outside the text crossfade');assert.equal(old.getAttribute('aria-hidden'),'true');assert.ok(old.hasAttribute('inert'));assert.equal(old.querySelector('[id]'),null);assert.equal(old.querySelector('button'),null);
  assert.equal(flow.element.querySelectorAll('#build-title').length,1);assert.equal(flow.element.querySelector('[data-action=stop-build]'),stop);assert.equal(disclosure.open,true);assert.match(flow.element.querySelector('.build-status-content:not(.build-status-outgoing)').textContent,/Testing the result/);
  click(stop);assert.equal(flow.element.querySelector('.build-status-outgoing'),null);assert.equal(flow.element.querySelector('h1').textContent,'Stopping…');assert.ok(effects.every(effect=>effect.cancelled));flow.dispose();
+});
+
+test('assembly responds once to genuine counts and stops all motion on pause, Stop and terminal states',t=>{
+ const {document}=dom(t),view=toolAssemblyView();document.body.append(view.element);const effects=[];
+ for(const node of view.element.querySelectorAll('.assembly-piece,.assembly-contact'))node.animate=function(frames,options){const effect={cancelled:false,cancel(){this.cancelled=true;}};effects.push(effect);assert.equal(options.iterations,undefined);assert.ok(options.duration<=420);return effect;};
+ view.update('waiting');assert.equal(effects.length,0);assert.equal(view.element.querySelectorAll('[data-state=future]').length,3);
+ const current={phase:1,progress:{completed:10,total:120}};view.update('active',current);assert.equal(effects.length,4);assert.equal(view.element.querySelectorAll('[data-state=settled]').length,1);assert.equal(view.element.querySelector('[data-state=working]').getAttribute('data-layer'),'1');
+ view.update('active',current);assert.equal(effects.length,4,'polls without new evidence do not replay motion');
+ view.update('active',{phase:1,progress:{completed:20,total:120}});assert.equal(effects.length,8);assert.ok(effects.slice(0,4).every(e=>e.cancelled));
+ for(const mode of ['paused','stopping','stopped','failed']){view.update(mode);assert.equal(view.element.dataset.mode,mode);assert.ok(effects.every(e=>e.cancelled));assert.equal(effects.length,8);}
+ view.update('ready');assert.equal(view.element.querySelectorAll('[data-state=settled]').length,3);assert.equal(view.element.dataset.mode,'ready');view.dispose();
+});
+test('assembly reduced motion is an intentional static phase composition',t=>{
+ const {document}=dom(t),view=toolAssemblyView(),original=globalThis.matchMedia;globalThis.matchMedia=()=>({matches:true});let animations=0;
+ for(const node of view.element.querySelectorAll('.assembly-piece,.assembly-contact'))node.animate=()=>{animations++;return {cancel(){}};};
+ try{document.body.append(view.element);view.update('active',{phase:2,progress:{completed:4,total:12}});assert.equal(animations,0);assert.equal(view.element.querySelectorAll('[data-state=settled]').length,2);assert.equal(view.element.querySelector('[data-state=working]').getAttribute('data-layer'),'2');assert.equal(view.element.getAttribute('aria-hidden'),'true');view.dispose();}finally{if(original)globalThis.matchMedia=original;else delete globalThis.matchMedia;}
 });
