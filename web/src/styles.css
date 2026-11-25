@@ -448,7 +448,7 @@ main:focus { outline:none; }
 [data-state=settled] > .assembly-piece .assembly-face { fill:var(--soft); stroke:var(--pine); }
 [data-state=settled] > .assembly-piece .assembly-edge { stroke:var(--pine); }
 [data-state=working] > .assembly-piece .assembly-face { fill:var(--soft); stroke:var(--pine); stroke-width:2; }
-[data-state=working] .assembly-contact { fill:var(--pine); }
+.build-instrument [data-layer][data-state=working] .assembly-contact { fill:var(--pine); }
 .assembly-seal { opacity:0; stroke:var(--pine); }
 .build-instrument[data-mode=ready] .assembly-seal { opacity:1; }
 .build-instrument[data-mode=ready] .assembly-contact { opacity:0; }
